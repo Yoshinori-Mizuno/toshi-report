@@ -2,15 +2,19 @@
 Yahoo!ファイナンス(finance.yahoo.co.jp)の投資信託・株式ページから
 基準価額(株価)・前日比・日付を取得し、data.json と index.html を生成する。
 
-対象ページは大きく2種類のHTML構造を持つ:
+対象ページは大きく3種類のHTML構造を持つ:
   1. 投資信託ページ  例: https://finance.yahoo.co.jp/quote/03311187
      -> <script>window.__PRELOADED_STATE__ = {...}</script> 内のJSONに
         "mainFundPriceBoard":{"fundPrices":{...}} として基準価額情報が入っている。
   2. 株式/ETFページ  例: https://finance.yahoo.co.jp/quote/2244.T
      -> PRELOADED_STATEが無く、価格はサーバーレンダリングされたHTML
         (class名に "CommonPriceBoard__price" 等を含む要素)に直接埋め込まれている。
+  3. 米国株ページ  例: https://finance.yahoo.co.jp/quote/SPCX
+     -> PRELOADED_STATE内のJSONに "mainUsStocksPriceBoard":{...} として
+        ドル建ての価格情報が入っている。円換算にはfetch_usdjpy_rate()で
+        取得するUSD/JPYレートを用いる(呼び出し側の責務)。
 
-両方のパターンをそれぞれ正規表現で解析し、共通のレコード形式にまとめる。
+いずれのパターンも正規表現で解析し、共通のレコード形式にまとめる。
 """
 
 import json
@@ -33,9 +37,11 @@ CODES = [
     ("2244(成、ETF)", "2244.T"),
     ("楽天VTI", "9I312179"),
     ("オルカン", "0331418A"),
+    ("SPCX", "SPCX"),
 ]
 
 BASE_URL = "https://finance.yahoo.co.jp/quote/{code}"
+FX_URL = "https://finance.yahoo.co.jp/quote/USDJPY=FX"
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -124,6 +130,61 @@ def parse_stock_page(html: str):
     }
 
 
+def parse_us_stock_page(html: str):
+    """米国株ページ (window.__PRELOADED_STATE__ 内の mainUsStocksPriceBoard) を解析する。
+    価格はドル建て。"""
+    marker = '"mainUsStocksPriceBoard"'
+    idx = html.find(marker)
+    if idx == -1:
+        return None
+
+    end = html.find('"currentTabNavigationKey"', idx)
+    block = html[idx:end] if end != -1 else html[idx : idx + 1500]
+
+    def field(key):
+        m = re.search(rf'"{key}":"([^"]*)"', block)
+        return m.group(1) if m else None
+
+    price = field("price")
+    if price is None:
+        return None
+
+    return {
+        "date_raw": field("japanUpdateTime"),
+        "price": price,
+        "change": field("priceChange"),
+        "change_rate": field("priceChangeRate"),
+        "currency": "USD",
+    }
+
+
+def fetch_usdjpy_rate():
+    """USD/JPYの仲値(Bid/Askの平均)を取得する。取得・解析に失敗した場合はNoneを返す。"""
+    try:
+        resp = requests.get(FX_URL, headers=HEADERS, timeout=TIMEOUT)
+        resp.raise_for_status()
+        resp.encoding = resp.apparent_encoding or "utf-8"
+        html = resp.text
+    except requests.RequestException:
+        return None
+
+    def extract(label):
+        idx = html.find(label)
+        if idx == -1:
+            return None
+        m = re.search(r'_FxPriceBoard__price_[^"]*">(.*?)</span></dd>', html[idx : idx + 500])
+        if not m:
+            return None
+        text = re.sub(r"<[^>]+>", "", m.group(1))
+        return to_float(text)
+
+    bid = extract("Bid（売値）")
+    ask = extract("Ask（買値）")
+    if bid is None or ask is None:
+        return None
+    return (bid + ask) / 2
+
+
 def to_iso_date(mmdd_raw: str, today: date) -> str:
     """'08/07' や '8/7' 形式の日付(年なし)を、直近の日付になるようISO形式に変換する。"""
     m = re.search(r"(\d{1,2})/(\d{1,2})", mmdd_raw or "")
@@ -161,7 +222,7 @@ def fetch_one(label: str, code: str, today: date) -> dict:
 
     record["name"] = extract_name(html, code)
 
-    parsed = parse_fund_page(html) or parse_stock_page(html)
+    parsed = parse_fund_page(html) or parse_stock_page(html) or parse_us_stock_page(html)
     if parsed is None:
         record["error"] = "価格情報を解析できませんでした"
         return record
@@ -174,6 +235,7 @@ def fetch_one(label: str, code: str, today: date) -> dict:
     record["change_value"] = to_float(parsed["change"])
     record["change_rate"] = parsed["change_rate"]
     record["change_rate_value"] = to_float(parsed["change_rate"])
+    record["currency"] = parsed.get("currency", "JPY")
     return record
 
 

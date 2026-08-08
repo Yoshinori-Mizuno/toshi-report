@@ -80,8 +80,9 @@ for _name, _key in BROKERS:
 
 
 def unit_basis(code: str) -> int:
-    """投資信託は基準価額が10,000口あたりの表示のため10000、株式/ETF(コードに'.'を含む)は1株単位。"""
-    return 1 if "." in code else 10000
+    """投資信託は基準価額が10,000口あたりの表示のため10000、株式/ETF(コードに'.'を含む、
+    またはSPCXのように数字を含まない米国株ティッカー)は1株単位。"""
+    return 1 if "." in code or code.isalpha() else 10000
 
 
 def account_sort_key(account_type: str):
@@ -165,7 +166,7 @@ def build_detail_rows(holdings: dict, price_records: list) -> list:
         }
 
         if price_rec and not price_rec.get("error") and price_rec.get("price_value") is not None:
-            current_price = price_rec["price_value"]
+            current_price = price_rec.get("price_value_jpy", price_rec["price_value"])
             market_value = h["quantity"] / basis * current_price
             row["current_price"] = current_price
             row["market_value"] = market_value
@@ -345,12 +346,23 @@ def render_price_table(price_records: list) -> str:
         else:
             trend_class, arrow = "flat", "―"
 
+        if r.get("currency") == "USD":
+            price_value = r.get("price_value")
+            price_cell = f"${price_value:,.2f}" if price_value is not None else "—"
+            price_value_jpy = r.get("price_value_jpy")
+            if price_value_jpy is not None:
+                price_cell += f'<span class="sub">(≈{fmt_money(price_value_jpy)}円)</span>'
+            change_value_disp = f"${change_value:+,.2f}" if change_value is not None else "—"
+        else:
+            price_cell = fmt_money(r.get("price_value"))
+            change_value_disp = fmt_signed_money(change_value)
+
         rows.append(
             f"""
         <tr>
           <td class="label"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a><span class="sub-name">{r.get('name', '')}</span></td>
-          <td class="num">{fmt_money(r.get('price_value'))}</td>
-          <td class="num change {trend_class}">{arrow} {fmt_signed_money(r.get('change_value'))}</td>
+          <td class="num">{price_cell}</td>
+          <td class="num change {trend_class}">{arrow} {change_value_disp}</td>
           <td class="num change {trend_class}">{fmt_signed_pct(r.get('change_rate_value'))}</td>
           <td class="num sub">{r.get('date') or '—'}</td>
         </tr>"""
@@ -832,6 +844,18 @@ def main():
         else:
             print(f"  -> {label}: {record.get('price')}")
         price_records.append(record)
+
+    usd_records = [r for r in price_records if not r.get("error") and r.get("currency") == "USD"]
+    if usd_records:
+        usdjpy_rate = fp.fetch_usdjpy_rate()
+        if usdjpy_rate is None:
+            for r in usd_records:
+                r["error"] = "為替レート(USD/JPY)を取得できませんでした"
+        else:
+            print(f"  -> USD/JPY: {usdjpy_rate:.3f}")
+            for r in usd_records:
+                r["fx_rate"] = usdjpy_rate
+                r["price_value_jpy"] = r["price_value"] * usdjpy_rate
 
     transactions = load_transactions(TRANSACTIONS_FILE)
     holdings = aggregate_by_key(transactions)
