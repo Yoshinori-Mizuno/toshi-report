@@ -40,6 +40,7 @@ transactions.csv (購入履歴) と fetch_prices.py で取得する現在価格�
 """
 
 import csv
+import io
 import os
 from datetime import date, datetime
 
@@ -47,6 +48,23 @@ import fetch_prices as fp
 
 TRANSACTIONS_FILE = "transactions.csv"
 HISTORY_FILE = "history.csv"
+
+# transactions.csv はExcel等での手編集を想定し、UTF-8以外にShift-JIS(CP932)で
+# 保存される場合にも対応する。
+TRANSACTIONS_ENCODINGS = ("utf-8-sig", "cp932")
+
+
+def _read_text_any_encoding(path: str, encodings=TRANSACTIONS_ENCODINGS) -> str:
+    with open(path, "rb") as f:
+        data = f.read()
+    for encoding in encodings:
+        try:
+            return data.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    raise ValueError(
+        f"{path} の文字コードを判定できません(試行: {', '.join(encodings)})"
+    )
 
 # 証券会社別の内訳を history.csv / グラフに持たせる対象と、その列キー
 BROKERS = [("SBI証券", "sbi"), ("楽天証券", "rakuten")]
@@ -79,30 +97,30 @@ def broker_sort_key(broker: str):
 def load_transactions(path: str) -> list:
     if not os.path.exists(path):
         return []
-    with open(path, encoding="utf-8-sig", newline="") as f:
-        reader = csv.DictReader(f)
-        rows = []
-        for i, row in enumerate(reader, start=2):
-            if not row.get("code"):
-                continue
-            broker = (row.get("broker") or "").strip()
-            account_type = (row.get("account_type") or "").strip()
-            if not broker or not account_type:
-                raise ValueError(
-                    f"transactions.csv の{i}行目: broker/account_type が未入力です"
-                )
-            rows.append(
-                {
-                    "date": (row.get("date") or "").strip(),
-                    "broker": broker,
-                    "account_type": account_type,
-                    "code": row["code"].strip(),
-                    "quantity": float(row["quantity"]),
-                    "unit_price": float(row["unit_price"]),
-                    "note": (row.get("note") or "").strip(),
-                }
+    text = _read_text_any_encoding(path)
+    reader = csv.DictReader(io.StringIO(text, newline=""))
+    rows = []
+    for i, row in enumerate(reader, start=2):
+        if not row.get("code"):
+            continue
+        broker = (row.get("broker") or "").strip()
+        account_type = (row.get("account_type") or "").strip()
+        if not broker or not account_type:
+            raise ValueError(
+                f"transactions.csv の{i}行目: broker/account_type が未入力です"
             )
-        return rows
+        rows.append(
+            {
+                "date": (row.get("date") or "").strip(),
+                "broker": broker,
+                "account_type": account_type,
+                "code": row["code"].strip(),
+                "quantity": float(row["quantity"]),
+                "unit_price": float(row["unit_price"]),
+                "note": (row.get("note") or "").strip(),
+            }
+        )
+    return rows
 
 
 def aggregate_by_key(transactions: list) -> dict:
