@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>資産状況レポート</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --gridline: #e1e0d9;
+    --border: rgba(11,11,11,0.10);
+    --up: #006300;
+    --down: #d03b3b;
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --gridline: #2c2c2a;
+      --border: rgba(255,255,255,0.10);
+      --up: #0ca30c;
+      --down: #e66767;
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --gridline: #2c2c2a;
+    --border: rgba(255,255,255,0.10);
+    --up: #0ca30c;
+    --down: #e66767;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 16px 64px;
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: 1.3rem; margin: 0 0 4px; }
+  h2 { font-size: 1.05rem; margin: 40px 0 12px; }
+  .meta { color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 8px; }
+  .stat-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0 28px; }
+  .stat-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    min-width: 150px;
+    flex: 1;
+  }
+  .stat-tile .stat-label { color: var(--text-muted); font-size: 0.75rem; }
+  .stat-tile .stat-value { font-size: 1.3rem; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .stat-tile .stat-value.up { color: var(--up); }
+  .stat-tile .stat-value.down { color: var(--down); }
+  .table-scroll {
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 640px; }
+  thead th {
+    text-align: right; font-weight: 600; color: var(--text-muted);
+    font-size: 0.76rem; padding: 12px 14px; border-bottom: 1px solid var(--gridline);
+    white-space: nowrap;
+  }
+  thead th:first-child { text-align: left; }
+  tbody td {
+    padding: 11px 14px; border-bottom: 1px solid var(--gridline);
+    text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.label { text-align: left; white-space: normal; }
+  td.label a { color: var(--text-primary); font-weight: 600; text-decoration: none; }
+  td.label a:hover { text-decoration: underline; }
+  td.sub { text-align: left; color: var(--text-secondary); font-size: 0.82rem; white-space: nowrap; }
+  .sub-name { display: block; color: var(--text-muted); font-size: 0.76rem; font-weight: 400; margin-top: 2px; }
+  td span.sub { display: block; color: var(--text-muted); font-size: 0.76rem; font-weight: 400; text-align: right; }
+  td.change.up, .stat-value.up { color: var(--up); }
+  td.change.down, .stat-value.down { color: var(--down); }
+  td.change.flat { color: var(--text-muted); }
+  tr.total-row td { font-weight: 700; border-top: 2px solid var(--gridline); }
+  td.error { text-align: left; color: var(--down); }
+  .empty, .note { color: var(--text-muted); font-size: 0.85rem; }
+  .note { margin-top: 8px; }
+  .chart-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; font-size: 0.8rem; color: var(--text-secondary); }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .swatch { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+  .line-cost-swatch { background: var(--text-muted); }
+  .line-s1-swatch { background: var(--series-1); }
+  .line-sbi-swatch { background: var(--series-2); }
+  .line-rakuten-swatch { background: var(--series-3); }
+  .asset-chart { width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+  .line-cost { stroke: var(--text-muted); stroke-width: 2; stroke-dasharray: 5 4; }
+  .line-s1 { stroke: var(--series-1); stroke-width: 2; }
+  .line-sbi { stroke: var(--series-2); stroke-width: 2; }
+  .line-rakuten { stroke: var(--series-3); stroke-width: 2; }
+  .grid { stroke: var(--gridline); stroke-width: 1; }
+  .pt-cost { fill: var(--text-muted); }
+  .pt-s1 { fill: var(--series-1); }
+  .pt-sbi { fill: var(--series-2); }
+  .pt-rakuten { fill: var(--series-3); }
+  .axis-label { fill: var(--text-muted); font-size: 10px; }
+  footer { margin-top: 28px; color: var(--text-muted); font-size: 0.78rem; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>資産状況レポート</h1>
+    <p class="meta">生成日時: 2026-08-08 18:16:16 / データ取得元: finance.yahoo.co.jp</p>
+
+    <div class="stat-row">
+      <div class="stat-tile"><div class="stat-label">取得金額(元本・全体)</div><div class="stat-value">0円</div></div>
+      <div class="stat-tile"><div class="stat-label">評価額(全体)</div><div class="stat-value">0円</div></div>
+      <div class="stat-tile"><div class="stat-label">評価損益(全体)</div><div class="stat-value ">0円</div></div>
+      <div class="stat-tile"><div class="stat-label">損益率(全体)</div><div class="stat-value ">—</div></div>
+    </div>
+
+    <h2>証券会社別サマリー</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>証券会社</th>
+            <th>取得金額</th>
+            <th>評価額</th>
+            <th>評価損益(率)</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>銘柄別 保有資産(全口座合算)</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>銘柄</th>
+            <th>保有口数/株数</th>
+            <th>平均取得単価</th>
+            <th>取得金額</th>
+            <th>現在価格</th>
+            <th>評価額</th>
+            <th>評価損益(率)</th>
+          </tr>
+        </thead>
+        <tbody><p class="empty">transactions.csv に購入履歴がまだありません。</p>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">投資信託の価格・単価は10,000口あたり、ETF/株式は1株あたりの金額です。</p>
+
+    <h2>証券会社・口座種別ごとの保有明細</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>証券会社</th>
+            <th>口座種別</th>
+            <th>銘柄</th>
+            <th>保有口数/株数</th>
+            <th>平均取得単価</th>
+            <th>取得金額</th>
+            <th>現在価格</th>
+            <th>評価額</th>
+            <th>評価損益(率)</th>
+          </tr>
+        </thead>
+        <tbody><p class="empty">transactions.csv に購入履歴がまだありません。</p>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>資産推移</h2>
+    <p class="empty">資産推移グラフの表示には2件以上の履歴(=2回以上の実行)が必要です。</p>
+
+    <h2>現在の基準価額・株価一覧</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>銘柄</th>
+            <th>基準価額/株価</th>
+            <th>前日比</th>
+            <th>前日比(%)</th>
+            <th>基準日</th>
+          </tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td class="label"><a href="https://finance.yahoo.co.jp/quote/04314243" target="_blank" rel="noopener">一歩テック</a><span class="sub-name">一歩先いく US テック・トップ20インデックス</span></td>
+          <td class="num">19,820</td>
+          <td class="num change up">▲ +110</td>
+          <td class="num change up">+0.56%</td>
+          <td class="num sub">2026-08-07</td>
+        </tr>
+        <tr>
+          <td class="label"><a href="https://finance.yahoo.co.jp/quote/04311181" target="_blank" rel="noopener">Fang</a><span class="sub-name">iFreeNEXT FANG+インデックス</span></td>
+          <td class="num">98,332</td>
+          <td class="num change up">▲ +455</td>
+          <td class="num change up">+0.46%</td>
+          <td class="num sub">2026-08-07</td>
+        </tr>
+        <tr>
+          <td class="label"><a href="https://finance.yahoo.co.jp/quote/03311187" target="_blank" rel="noopener">SP500</a><span class="sub-name">eMAXIS Slim米国株式(S&P500)</span></td>
+          <td class="num">44,975</td>
+          <td class="num change up">▲ +162</td>
+          <td class="num change up">+0.36%</td>
+          <td class="num sub">2026-08-07</td>
+        </tr>
+        <tr>
+          <td class="label"><a href="https://finance.yahoo.co.jp/quote/03311182" target="_blank" rel="noopener">日経225</a><span class="sub-name">eMAXIS Slim国内株式(日経平均)</span></td>
+          <td class="num">32,473</td>
+          <td class="num change down">▼ -38</td>
+          <td class="num change down">-0.12%</td>
+          <td class="num sub">2026-08-07</td>
+        </tr>
+        <tr>
+          <td class="label"><a href="https://finance.yahoo.co.jp/quote/29313233" target="_blank" rel="noopener">NAS100</a><span class="sub-name">ニッセイ NASDAQ100インデックスファンド＜購･換無＞</span></td>
+          <td class="num">27,787</td>
+          <td class="num change up">▲ +41</td>
+          <td class="num change up">+0.15%</td>
+          <td class="num sub">2026-08-07</td>
+        </tr>
+        <tr>
+          <td class="label"><a href="https://finance.yahoo.co.jp/quote/29314233" target="_blank" rel="noopener">SOX</a><span class="sub-name">ニッセイ SOXインデックス(米国半導体株)＜購･換無＞</span></td>
+          <td class="num">45,844</td>
+          <td class="num change up">▲ +395</td>
+          <td class="num change up">+0.87%</td>
+          <td class="num sub">2026-08-07</td>
+        </tr>
+        <tr>
+          <td class="label"><a href="https://finance.yahoo.co.jp/quote/02311251" target="_blank" rel="noopener">ゴルNAS(特)</a><span class="sub-name">Tracers NASDAQ100ゴールドプラス</span></td>
+          <td class="num">18,717</td>
+          <td class="num change down">▼ -2</td>
+          <td class="num change down">-0.01%</td>
+          <td class="num sub">2026-08-07</td>
+        </tr>
+        <tr>
+          <td class="label"><a href="https://finance.yahoo.co.jp/quote/8931A236" target="_blank" rel="noopener">iシェアーズゴールド(成)</a><span class="sub-name">SBI・iシェアーズ・ゴールド(H無)</span></td>
+          <td class="num">24,163</td>
+          <td class="num change up">▲ +101</td>
+          <td class="num change up">+0.42%</td>
+          <td class="num sub">2026-08-07</td>
+        </tr>
+        <tr>
+          <td class="label"><a href="https://finance.yahoo.co.jp/quote/2244.T" target="_blank" rel="noopener">2244(成、ETF)</a><span class="sub-name">GX US テック・トップ20</span></td>
+          <td class="num">3,587</td>
+          <td class="num change up">▲ +20</td>
+          <td class="num change up">+0.56%</td>
+          <td class="num sub">2026-08-07</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer>本レポートはYahoo!ファイナンスの公開ページから自動取得した情報と transactions.csv の入力内容を基に算出しています。投資判断は自己責任で行ってください。</footer>
+  </div>
+</body>
+</html>
