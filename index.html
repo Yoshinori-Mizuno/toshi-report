@@ -132,7 +132,7 @@
 <body>
   <div class="wrap">
     <h1>資産状況レポート</h1>
-    <p class="meta">生成日時: 2026-08-08 13:55:29 / データ取得元: finance.yahoo.co.jp</p>
+    <p class="meta">生成日時: 2026-08-09 13:20:53 / データ取得元: finance.yahoo.co.jp</p>
 
     <div class="stat-row">
       <div class="stat-tile"><div class="stat-label">取得金額(元本・全体)</div><div class="stat-value">8,766,998円</div></div>
@@ -493,7 +493,24 @@
     </div>
 
     <h2>資産推移</h2>
-    <p class="empty">資産推移グラフの表示には2件以上の履歴(=2回以上の実行)が必要です。</p>
+    
+    <div class="chart-legend"><span class="legend-item"><span class="swatch line-cost-swatch"></span>元本(合算)</span><span class="legend-item"><span class="swatch line-s1-swatch"></span>評価額(合算)</span><span class="legend-item"><span class="swatch line-sbi-swatch"></span>評価額(SBI証券)</span><span class="legend-item"><span class="swatch line-rakuten-swatch"></span>評価額(楽天証券)</span></div>
+    <svg viewBox="0 0 760 280" class="asset-chart" role="img" aria-label="資産推移グラフ">
+      <line x1="64" y1="16.0" x2="744" y2="16.0" class="grid" /><line x1="64" y1="75.0" x2="744" y2="75.0" class="grid" /><line x1="64" y1="134.0" x2="744" y2="134.0" class="grid" /><line x1="64" y1="193.0" x2="744" y2="193.0" class="grid" /><line x1="64" y1="252.0" x2="744" y2="252.0" class="grid" />
+      <text x="56" y="20.0" class="axis-label" text-anchor="end">12,996,062</text><text x="56" y="79.0" class="axis-label" text-anchor="end">9,747,046</text><text x="56" y="138.0" class="axis-label" text-anchor="end">6,498,031</text><text x="56" y="197.0" class="axis-label" text-anchor="end">3,249,015</text><text x="56" y="256.0" class="axis-label" text-anchor="end">0</text>
+      <path d="M64.0,92.8 L744.0,92.8" class="line-cost" fill="none" /><path d="M64.0,33.5 L744.0,33.5" class="line-s1" fill="none" /><path d="M64.0,68.3 L744.0,68.3" class="line-sbi" fill="none" /><path d="M64.0,217.2 L744.0,217.2" class="line-rakuten" fill="none" />
+      <circle cx="64.0" cy="92.8" r="3" class="pt-cost"><title>2026-08-08
+元本(合算): 8,766,998円</title></circle><circle cx="744.0" cy="92.8" r="3" class="pt-cost"><title>2026-08-09
+元本(合算): 8,766,998円</title></circle><circle cx="64.0" cy="33.5" r="3" class="pt-s1"><title>2026-08-08
+評価額(合算): 12,033,390円</title></circle><circle cx="744.0" cy="33.5" r="3" class="pt-s1"><title>2026-08-09
+評価額(合算): 12,033,390円</title></circle><circle cx="64.0" cy="68.3" r="3" class="pt-sbi"><title>2026-08-08
+評価額(SBI証券): 10,114,747円</title></circle><circle cx="744.0" cy="68.3" r="3" class="pt-sbi"><title>2026-08-09
+評価額(SBI証券): 10,114,747円</title></circle><circle cx="64.0" cy="217.2" r="3" class="pt-rakuten"><title>2026-08-08
+評価額(楽天証券): 1,918,644円</title></circle><circle cx="744.0" cy="217.2" r="3" class="pt-rakuten"><title>2026-08-09
+評価額(楽天証券): 1,918,644円</title></circle>
+      <text x="64.0" y="274" class="axis-label" text-anchor="middle">2026-08-08</text><text x="744.0" y="274" class="axis-label" text-anchor="middle">2026-08-09</text>
+    </svg>
+    
 
     <h2>現在の基準価額・株価一覧</h2>
     <div class="table-scroll">
