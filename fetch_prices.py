@@ -50,6 +50,24 @@ HEADERS = {
 }
 TIMEOUT = 10
 
+# 取得結果のキャッシュ(前回値)。価格欄が "---" になっている等で当日の価格を
+# 取得できなかった銘柄は、このファイルに残っている前回値で補完する。
+DATA_FILE = "data.json"
+
+# 前回値で補完する際に引き継ぐフィールド
+CACHED_PRICE_FIELDS = (
+    "date",
+    "date_raw",
+    "price",
+    "price_value",
+    "change",
+    "change_value",
+    "change_rate",
+    "change_rate_value",
+    "currency",
+    "fx_rate",
+)
+
 # 短時間に連続アクセスすると Yahoo 側に弾かれ、全銘柄が 429/5xx になることがある。
 # 銘柄間はこの秒数だけ間隔を空け、それでも弾かれた場合は指数バックオフで再試行する。
 REQUEST_INTERVAL = 0.5
@@ -262,7 +280,71 @@ def fetch_one(label: str, code: str, today: date) -> dict:
     record["change_rate"] = parsed["change_rate"]
     record["change_rate_value"] = to_float(parsed["change_rate"])
     record["currency"] = parsed.get("currency", "JPY")
+
+    # 市場が開く前などYahoo!側の価格欄が "---" になっていることがある。
+    # JSON自体は取得できているため従来はエラーと判定されず、price_value が
+    # None のまま後続の計算に渡ってTypeErrorになっていた。ここで明示的に
+    # エラー扱いにし、呼び出し側で前回値による補完(apply_cache_fallback)を行う。
+    if record["price_value"] is None:
+        record["error"] = f"価格が数値ではありません(表示値: {parsed['price']})"
+
     return record
+
+
+def load_price_cache(path: str = None) -> dict:
+    """前回出力した data.json を {銘柄コード: レコード} として読み込む。
+    ファイルが無い/壊れている場合は空の辞書を返す。"""
+    path = path or f"{OUT_DIR}/{DATA_FILE}"
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+    cache = {}
+    for rec in data.get("records", []):
+        if rec.get("code") and rec.get("price_value") is not None:
+            cache[rec["code"]] = rec
+    return cache
+
+
+def apply_cache_fallback(records: list, cache: dict) -> list:
+    """価格を取得できなかった銘柄を、data.json に残っている前回値で補完する。
+
+    補完した銘柄は error を解除し、stale=True を立てて「前回値である」ことを
+    レポート側で明示できるようにする。補完できた銘柄のリストを返す。"""
+    recovered = []
+    for record in records:
+        if record.get("price_value") is not None:
+            continue
+        cached = cache.get(record.get("code"))
+        if not cached:
+            continue
+
+        reason = record.get("error") or "価格を取得できませんでした"
+        for key in CACHED_PRICE_FIELDS:
+            if key in cached:
+                record[key] = cached[key]
+        if not record.get("name"):
+            record["name"] = cached.get("name")
+
+        record["error"] = None
+        record["stale"] = True
+        record["stale_reason"] = reason
+        record["stale_date"] = cached.get("date")
+        recovered.append(record)
+    return recovered
+
+
+def save_price_cache(records: list, generated_at: str, path: str = None) -> None:
+    path = path or f"{OUT_DIR}/{DATA_FILE}"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(
+            {"generated_at": generated_at, "records": records},
+            f,
+            ensure_ascii=False,
+            indent=2,
+        )
 
 
 def render_html(records: list, generated_at: str) -> str:
@@ -472,6 +554,8 @@ def render_html(records: list, generated_at: str) -> str:
 
 def main():
     today = date.today()
+    # data.json を上書きする前に前回値を読み込んでおく
+    cache = load_price_cache()
     records = []
     for label, code in CODES:
         print(f"取得中: {label} ({code}) ...")
@@ -487,15 +571,12 @@ def main():
         records.append(record)
         time.sleep(REQUEST_INTERVAL)  # サーバーへの連続アクセスを避ける
 
+    for r in apply_cache_fallback(records, cache):
+        print(f"  -> {r['label']}: 前回値({r.get('stale_date') or '日付不明'})で補完しました")
+
     generated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    with open(f"{OUT_DIR}/data.json", "w", encoding="utf-8") as f:
-        json.dump(
-            {"generated_at": generated_at, "records": records},
-            f,
-            ensure_ascii=False,
-            indent=2,
-        )
+    save_price_cache(records, generated_at)
 
     html = render_html(records, generated_at)
     with open(f"{OUT_DIR}/index.html", "w", encoding="utf-8") as f:

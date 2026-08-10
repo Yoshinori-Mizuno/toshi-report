@@ -40,6 +40,12 @@ transactions.csv (購入履歴) と fetch_prices.py で取得する現在価格�
   同じ日付に複数回実行した場合はその日の行を上書きする。
   BROKERS に無い証券会社は合算(total_*)には含まれるが、証券会社別の内訳
   列は持たない。
+
+■ data.json (このスクリプトが実行のたびに自動更新する。手編集不要)
+  最後に取得できた価格のキャッシュ。Yahoo!側の価格欄が "---" になっている等で
+  当日値を取得できなかった銘柄は、このファイルの前回値をそのまま使って
+  レポートを生成する(その銘柄には「前回値」と注記する)。他の銘柄は
+  通常どおり当日値で更新される。
 """
 
 import csv
@@ -162,8 +168,11 @@ def build_detail_rows(holdings: dict, price_records: list) -> list:
             "market_value": None,
             "gain": None,
             "gain_rate": None,
+            "day_change": None,
+            "day_change_rate": None,
             "price_date": None,
             "price_error": None,
+            "price_stale": False,
         }
 
         if price_rec and not price_rec.get("error") and price_rec.get("price_value") is not None:
@@ -174,6 +183,16 @@ def build_detail_rows(holdings: dict, price_records: list) -> list:
             row["gain"] = market_value - h["cost_amount"]
             row["gain_rate"] = (row["gain"] / h["cost_amount"] * 100) if h["cost_amount"] else None
             row["price_date"] = price_rec.get("date")
+            row["price_stale"] = bool(price_rec.get("stale"))
+
+            # 前日比(評価額ベース) = 保有数 × 1口(株)あたりの前日比。
+            # 外貨建ては当日のレートで円換算する(為替変動分は考慮しない)。
+            change_per_unit = price_rec.get("change_value")
+            if change_per_unit is not None:
+                if price_rec.get("currency") == "USD" and price_rec.get("fx_rate"):
+                    change_per_unit *= price_rec["fx_rate"]
+                row["day_change"] = h["quantity"] / basis * change_per_unit
+                row["day_change_rate"] = price_rec.get("change_rate_value")
         else:
             row["price_error"] = price_rec.get("error") if price_rec else "価格未取得"
 
@@ -187,6 +206,21 @@ def build_detail_rows(holdings: dict, price_records: list) -> list:
         )
     )
     return rows
+
+
+def sum_day_change(rows: list):
+    """複数行の前日比(円)を合算し、前日の評価額に対する変化率も返す。
+    前日比が取れていない行は合算対象から除く。"""
+    contributing = [
+        r for r in rows
+        if r.get("day_change") is not None and r.get("market_value") is not None
+    ]
+    if not contributing:
+        return None, None
+    total = sum(r["day_change"] for r in contributing)
+    prev_value = sum(r["market_value"] - r["day_change"] for r in contributing)
+    rate = (total / prev_value * 100) if prev_value else None
+    return total, rate
 
 
 def aggregate_by_code(detail_rows: list) -> list:
@@ -204,11 +238,14 @@ def aggregate_by_code(detail_rows: list) -> list:
                 "current_price": r["current_price"],
                 "price_date": r["price_date"],
                 "price_error": None,
+                "price_stale": r["price_stale"],
                 "has_price": True,
+                "members": [],
             },
         )
         g["quantity"] += r["quantity"]
         g["cost_amount"] += r["cost_amount"]
+        g["members"].append(r)
         if r["price_error"]:
             g["has_price"] = False
             g["price_error"] = r["price_error"]
@@ -217,16 +254,20 @@ def aggregate_by_code(detail_rows: list) -> list:
     for code, g in groups.items():
         basis = unit_basis(code)
         avg_unit_price = g["cost_amount"] / (g["quantity"] / basis) if g["quantity"] else 0.0
+        members = g.pop("members")
         row = dict(g, avg_unit_price=avg_unit_price)
         if g["has_price"] and g["current_price"] is not None:
             market_value = g["quantity"] / basis * g["current_price"]
             row["market_value"] = market_value
             row["gain"] = market_value - g["cost_amount"]
             row["gain_rate"] = (row["gain"] / g["cost_amount"] * 100) if g["cost_amount"] else None
+            row["day_change"], row["day_change_rate"] = sum_day_change(members)
         else:
             row["market_value"] = None
             row["gain"] = None
             row["gain_rate"] = None
+            row["day_change"] = None
+            row["day_change_rate"] = None
         rows.append(row)
 
     rows.sort(key=lambda r: r["market_value"] if r["market_value"] is not None else -1, reverse=True)
@@ -241,11 +282,14 @@ def compute_group_totals(rows: list) -> dict:
     total_gain = total_value - priced_cost
     total_gain_rate = (total_gain / priced_cost * 100) if priced_cost else None
     missing = [r["label"] for r in rows if r["market_value"] is None]
+    day_change, day_change_rate = sum_day_change(rows)
     return {
         "total_cost": total_cost,
         "total_value": total_value,
         "total_gain": total_gain,
         "total_gain_rate": total_gain_rate,
+        "day_change": day_change,
+        "day_change_rate": day_change_rate,
         "missing_labels": missing,
     }
 
@@ -338,6 +382,24 @@ def badge(trend_class: str, text: str) -> str:
     return f'<span class="change-badge {trend_class}">{text}</span>'
 
 
+def day_change_cell(value, rate) -> str:
+    """前日比(円)と変化率(%)を1セル分のHTMLにまとめる。"""
+    if value is None:
+        return '<span class="cell-val">—</span>'
+    html = badge(trend_class_of(value), fmt_signed_money(value) + "円")
+    if rate is not None:
+        html += f'<span class="sub">({fmt_signed_pct(rate)})</span>'
+    return f'<span class="cell-val">{html}</span>'
+
+
+def current_price_cell(row) -> str:
+    """現在価格セル。前回値で補完した銘柄には注記を付ける。"""
+    html = fmt_money(row["current_price"])
+    if row.get("price_stale"):
+        html += '<span class="sub">(前回値)</span>'
+    return f'<span class="cell-val">{html}</span>'
+
+
 def parse_float(s):
     if s in (None, ""):
         return None
@@ -407,6 +469,21 @@ def render_gain_comparisons(comparisons: list) -> str:
     return f'<div class="stat-sub-list">{items}</div>'
 
 
+def render_value_day_change(totals: dict) -> str:
+    """評価額タイルに前日比(値動きによる増減)を添える。"""
+    if totals.get("day_change") is None:
+        return ""
+    text = fmt_signed_money(totals["day_change"]) + "円"
+    if totals.get("day_change_rate") is not None:
+        text += f" ({fmt_signed_pct(totals['day_change_rate'])})"
+    return (
+        '<div class="stat-sub-list"><div class="stat-sub">'
+        '<span class="stat-sub-label">前日比</span>'
+        f'{badge(trend_class_of(totals["day_change"]), text)}'
+        "</div></div>"
+    )
+
+
 def render_price_table(price_records: list) -> str:
     rows = []
     for r in price_records:
@@ -442,6 +519,10 @@ def render_price_table(price_records: list) -> str:
             price_cell = fmt_money(r.get("price_value"))
             change_disp = fmt_signed_money(change_value)
 
+        # 当日値を取得できず前回値で補完した銘柄はその旨を明示する
+        if r.get("stale"):
+            price_cell += '<span class="sub">(前回値)</span>'
+
         rows.append(
             f"""
         <tr>
@@ -468,8 +549,11 @@ def render_code_table(code_rows: list, totals: dict) -> str:
           <td class="label" data-label="銘柄"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a><span class="sub-name">{r.get('name') or ''}</span></td>
           <td class="num" data-label="保有口数/株数"><span class="cell-val">{fmt_qty(r['quantity'])}</span></td>
           <td class="num" data-label="平均取得単価"><span class="cell-val">{fmt_money(r['avg_unit_price'])}</span></td>
+          <td class="num error" data-label="現在価格"><span class="cell-val">{r['price_error']}</span></td>
           <td class="num" data-label="取得金額"><span class="cell-val">{fmt_money(r['cost_amount'])}</span></td>
-          <td colspan="3" class="error" data-label="状態"><span class="cell-val">{r['price_error']}</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">—</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val">—</span></td>
+          <td class="num" data-label="前日比"><span class="cell-val">—</span></td>
         </tr>"""
             )
             continue
@@ -482,10 +566,11 @@ def render_code_table(code_rows: list, totals: dict) -> str:
           <td class="label" data-label="銘柄"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a><span class="sub-name">{r.get('name') or ''}</span></td>
           <td class="num" data-label="保有口数/株数"><span class="cell-val">{fmt_qty(r['quantity'])}</span></td>
           <td class="num" data-label="平均取得単価"><span class="cell-val">{fmt_money(r['avg_unit_price'])}</span></td>
+          <td class="num" data-label="現在価格">{current_price_cell(r)}</td>
           <td class="num" data-label="取得金額"><span class="cell-val">{fmt_money(r['cost_amount'])}</span></td>
-          <td class="num" data-label="現在価格"><span class="cell-val">{fmt_money(r['current_price'])}</span></td>
           <td class="num" data-label="評価額"><span class="cell-val">{fmt_money(r['market_value'])}</span></td>
           <td class="num" data-label="評価損益(率)"><span class="cell-val">{badge(trend_class, fmt_signed_money(gain) + '円')}<span class="sub">({fmt_signed_pct(r['gain_rate'])})</span></span></td>
+          <td class="num" data-label="前日比">{day_change_cell(r['day_change'], r['day_change_rate'])}</td>
         </tr>"""
         )
 
@@ -496,10 +581,11 @@ def render_code_table(code_rows: list, totals: dict) -> str:
           <td class="label" data-label="銘柄">合計</td>
           <td class="num" data-label="保有口数/株数"><span class="cell-val">—</span></td>
           <td class="num" data-label="平均取得単価"><span class="cell-val">—</span></td>
-          <td class="num" data-label="取得金額"><span class="cell-val">{fmt_money(totals['total_cost'])}</span></td>
           <td class="num" data-label="現在価格"><span class="cell-val">—</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">{fmt_money(totals['total_cost'])}</span></td>
           <td class="num" data-label="評価額"><span class="cell-val">{fmt_money(totals['total_value'])}</span></td>
           <td class="num" data-label="評価損益(率)"><span class="cell-val">{badge(total_trend, fmt_signed_money(total_gain) + '円')}<span class="sub">({fmt_signed_pct(totals['total_gain_rate'])})</span></span></td>
+          <td class="num" data-label="前日比">{day_change_cell(totals['day_change'], totals['day_change_rate'])}</td>
         </tr>"""
 
     missing_note = ""
@@ -528,8 +614,11 @@ def render_detail_table(detail_rows: list) -> str:
           <td class="label" data-label="銘柄"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a><span class="sub-name">{r.get('name') or ''}</span></td>
           <td class="num" data-label="保有口数/株数"><span class="cell-val">{fmt_qty(r['quantity'])}</span></td>
           <td class="num" data-label="平均取得単価"><span class="cell-val">{fmt_money(r['avg_unit_price'])}</span></td>
+          <td class="num error" data-label="現在価格"><span class="cell-val">{r['price_error']}</span></td>
           <td class="num" data-label="取得金額"><span class="cell-val">{fmt_money(r['cost_amount'])}</span></td>
-          <td colspan="3" class="error" data-label="状態"><span class="cell-val">{r['price_error']}</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">—</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val">—</span></td>
+          <td class="num" data-label="前日比"><span class="cell-val">—</span></td>
         </tr>"""
             )
             continue
@@ -544,10 +633,11 @@ def render_detail_table(detail_rows: list) -> str:
           <td class="label" data-label="銘柄"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a><span class="sub-name">{r.get('name') or ''}</span></td>
           <td class="num" data-label="保有口数/株数"><span class="cell-val">{fmt_qty(r['quantity'])}</span></td>
           <td class="num" data-label="平均取得単価"><span class="cell-val">{fmt_money(r['avg_unit_price'])}</span></td>
+          <td class="num" data-label="現在価格">{current_price_cell(r)}</td>
           <td class="num" data-label="取得金額"><span class="cell-val">{fmt_money(r['cost_amount'])}</span></td>
-          <td class="num" data-label="現在価格"><span class="cell-val">{fmt_money(r['current_price'])}</span></td>
           <td class="num" data-label="評価額"><span class="cell-val">{fmt_money(r['market_value'])}</span></td>
           <td class="num" data-label="評価損益(率)"><span class="cell-val">{badge(trend_class, fmt_signed_money(gain) + '円')}<span class="sub">({fmt_signed_pct(r['gain_rate'])})</span></span></td>
+          <td class="num" data-label="前日比">{day_change_cell(r['day_change'], r['day_change_rate'])}</td>
         </tr>"""
         )
     return "".join(rows)
@@ -572,6 +662,7 @@ def render_broker_summary_table(totals_by_broker: dict) -> str:
           <td class="num" data-label="取得金額"><span class="cell-val">{fmt_money(t['total_cost'])}</span></td>
           <td class="num" data-label="評価額"><span class="cell-val">{fmt_money(t['total_value'])}</span></td>
           <td class="num" data-label="評価損益(率)"><span class="cell-val">{badge(trend_class, fmt_signed_money(gain) + '円')}<span class="sub">({fmt_signed_pct(t['total_gain_rate'])})</span></span></td>
+          <td class="num" data-label="前日比">{day_change_cell(t['day_change'], t['day_change_rate'])}</td>
         </tr>"""
         )
     return "".join(rows)
@@ -841,7 +932,7 @@ def render_html(
   .sub-name {{ display: block; color: var(--text-muted); font-size: 0.76rem; font-weight: 400; margin-top: 2px; }}
   td span.sub {{ display: inline-block; color: var(--text-muted); font-size: 0.76rem; font-weight: 400; }}
   tr.total-row td {{ font-weight: 800; border-top: 2px solid var(--accent-value); background: var(--page); }}
-  td.error {{ text-align: left; color: var(--down); }}
+  td.error {{ text-align: left; color: var(--down); white-space: normal; }}
   .empty, .note {{ color: var(--text-muted); font-size: 0.85rem; }}
   .note {{ margin-top: 8px; }}
 
@@ -907,7 +998,7 @@ def render_html(
 
     <div class="stat-row">
       <div class="stat-tile tile-cost"><div class="stat-label">取得金額(元本・全体)</div><div class="stat-value">{fmt_money(totals_all['total_cost'])}円</div></div>
-      <div class="stat-tile tile-value"><div class="stat-label">評価額(全体)</div><div class="stat-value">{fmt_money(totals_all['total_value'])}円</div></div>
+      <div class="stat-tile tile-value"><div class="stat-label">評価額(全体)</div><div class="stat-value">{fmt_money(totals_all['total_value'])}円</div>{render_value_day_change(totals_all)}</div>
       <div class="stat-tile tile-gain"><div class="stat-label">評価損益(全体)</div><div class="stat-value {gain_trend if gain_trend != 'flat' else ''}">{fmt_signed_money(totals_all['total_gain'])}円</div>{render_gain_comparisons(gain_comparisons)}</div>
       <div class="stat-tile tile-rate"><div class="stat-label">損益率(全体)</div><div class="stat-value {rate_trend if rate_trend != 'flat' else ''}">{fmt_signed_pct(totals_all['total_gain_rate'])}</div></div>
     </div>
@@ -921,6 +1012,7 @@ def render_html(
             <th>取得金額</th>
             <th>評価額</th>
             <th>評価損益(率)</th>
+            <th>前日比</th>
           </tr>
         </thead>
         <tbody>{render_broker_summary_table(totals_by_broker)}
@@ -936,10 +1028,11 @@ def render_html(
             <th>銘柄</th>
             <th>保有口数/株数</th>
             <th>平均取得単価</th>
-            <th>取得金額</th>
             <th>現在価格</th>
+            <th>取得金額</th>
             <th>評価額</th>
             <th>評価損益(率)</th>
+            <th>前日比</th>
           </tr>
         </thead>
         <tbody>{render_code_table(code_rows, totals_all)}
@@ -958,10 +1051,11 @@ def render_html(
             <th>銘柄</th>
             <th>保有口数/株数</th>
             <th>平均取得単価</th>
-            <th>取得金額</th>
             <th>現在価格</th>
+            <th>取得金額</th>
             <th>評価額</th>
             <th>評価損益(率)</th>
+            <th>前日比</th>
           </tr>
         </thead>
         <tbody>{render_detail_table(detail_rows)}
@@ -1000,6 +1094,8 @@ def main():
     today = date.today()
 
     print("価格取得中...")
+    # data.json を上書きする前に前回値を読み込んでおく(取得失敗銘柄の補完用)
+    price_cache = fp.load_price_cache()
     price_records = []
     for i, (label, code) in enumerate(fp.CODES):
         if i:
@@ -1011,6 +1107,14 @@ def main():
         else:
             print(f"  -> {label}: {record.get('price')}")
         price_records.append(record)
+
+    # 価格欄が "---" になっている等で当日値を取得できなかった銘柄は、
+    # その銘柄だけ data.json の前回値をそのまま使う(他の銘柄は当日値で更新)。
+    for r in fp.apply_cache_fallback(price_records, price_cache):
+        print(
+            f"  -> {r['label']}: 当日値を取得できなかったため前回値"
+            f"({r.get('stale_date') or '日付不明'} 時点: {r.get('price')})を使用します"
+        )
 
     # 全銘柄が失敗した場合、そのまま進むと評価額0円のレポートで
     # index.html と history.csv を上書きしてしまうため、ここで中断する。
@@ -1024,17 +1128,22 @@ def main():
     if failed:
         print(f"\n警告: {len(failed)}/{len(price_records)}銘柄の価格を取得できませんでした。")
 
-    usd_records = [r for r in price_records if not r.get("error") and r.get("currency") == "USD"]
+    usd_records = [
+        r for r in price_records
+        if not r.get("error") and r.get("currency") == "USD" and r.get("price_value") is not None
+    ]
     if usd_records:
         usdjpy_rate = fp.fetch_usdjpy_rate()
-        if usdjpy_rate is None:
-            for r in usd_records:
-                r["error"] = "為替レート(USD/JPY)を取得できませんでした"
-        else:
+        if usdjpy_rate is not None:
             print(f"  -> USD/JPY: {usdjpy_rate:.3f}")
-            for r in usd_records:
-                r["fx_rate"] = usdjpy_rate
-                r["price_value_jpy"] = r["price_value"] * usdjpy_rate
+        for r in usd_records:
+            # レート取得に失敗した場合は前回値として引き継いだレートで代用する
+            rate = usdjpy_rate if usdjpy_rate is not None else r.get("fx_rate")
+            if rate is None:
+                r["error"] = "為替レート(USD/JPY)を取得できませんでした"
+                continue
+            r["fx_rate"] = rate
+            r["price_value_jpy"] = r["price_value"] * rate
 
     transactions = load_transactions(TRANSACTIONS_FILE)
     holdings = aggregate_by_key(transactions)
@@ -1071,6 +1180,9 @@ def main():
     )
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html)
+
+    # 次回実行時に取得失敗した銘柄を補完できるよう、今回の価格を保存する
+    fp.save_price_cache(price_records, generated_at)
 
     print(
         f"\n評価額: {fmt_money(totals_all['total_value'])}円 / "
