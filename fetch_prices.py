@@ -50,15 +50,41 @@ HEADERS = {
 }
 TIMEOUT = 10
 
+# 短時間に連続アクセスすると Yahoo 側に弾かれ、全銘柄が 429/5xx になることがある。
+# 銘柄間はこの秒数だけ間隔を空け、それでも弾かれた場合は指数バックオフで再試行する。
+REQUEST_INTERVAL = 0.5
+MAX_RETRIES = 3
+RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+
 OUT_DIR = "."
 
 
 def fetch_html(code: str) -> str:
     url = BASE_URL.format(code=code)
-    resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
-    resp.raise_for_status()
-    resp.encoding = resp.apparent_encoding or "utf-8"
-    return resp.text
+    last_error = None
+
+    for attempt in range(MAX_RETRIES):
+        if attempt:
+            # 1回目の再試行は1秒、2回目は2秒…と待ち時間を伸ばす
+            time.sleep(REQUEST_INTERVAL * (2 ** attempt))
+        try:
+            resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        except requests.RequestException as e:
+            last_error = e
+            continue
+
+        if resp.status_code in RETRYABLE_STATUS:
+            last_error = requests.HTTPError(
+                f"{resp.status_code} {resp.reason} (一時的なエラー。{MAX_RETRIES}回試行)",
+                response=resp,
+            )
+            continue
+
+        resp.raise_for_status()
+        resp.encoding = resp.apparent_encoding or "utf-8"
+        return resp.text
+
+    raise last_error
 
 
 def extract_name(html: str, code: str) -> str:
@@ -459,7 +485,7 @@ def main():
                 f"基準日 {record.get('date')}"
             )
         records.append(record)
-        time.sleep(0.5)  # サーバーへの連続アクセスを避ける
+        time.sleep(REQUEST_INTERVAL)  # サーバーへの連続アクセスを避ける
 
     generated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 

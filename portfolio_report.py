@@ -45,6 +45,7 @@ transactions.csv (購入履歴) と fetch_prices.py で取得する現在価格�
 import csv
 import io
 import os
+import time
 from datetime import date, datetime
 
 import fetch_prices as fp
@@ -837,13 +838,28 @@ def main():
 
     print("価格取得中...")
     price_records = []
-    for label, code in fp.CODES:
+    for i, (label, code) in enumerate(fp.CODES):
+        if i:
+            # 間隔を空けずに連続取得すると全銘柄が5xxで弾かれるため
+            time.sleep(fp.REQUEST_INTERVAL)
         record = fp.fetch_one(label, code, today)
         if record.get("error"):
             print(f"  -> {label}: エラー ({record['error']})")
         else:
             print(f"  -> {label}: {record.get('price')}")
         price_records.append(record)
+
+    # 全銘柄が失敗した場合、そのまま進むと評価額0円のレポートで
+    # index.html と history.csv を上書きしてしまうため、ここで中断する。
+    failed = [r for r in price_records if r.get("error")]
+    if price_records and len(failed) == len(price_records):
+        print("\n[中断] 全銘柄で価格を取得できませんでした。")
+        print("       index.html / history.csv は更新していません。")
+        print("       サイト側のアクセス制限(データセンターIPからの遮断など)の可能性があります。")
+        print(f"       例: {failed[0]['label']}: {failed[0]['error']}")
+        raise SystemExit(1)
+    if failed:
+        print(f"\n警告: {len(failed)}/{len(price_records)}銘柄の価格を取得できませんでした。")
 
     usd_records = [r for r in price_records if not r.get("error") and r.get("currency") == "USD"]
     if usd_records:
@@ -868,6 +884,13 @@ def main():
         broker: compute_group_totals([r for r in detail_rows if r["broker"] == broker])
         for broker in brokers_present
     }
+
+    # 保有はあるのに評価額が0円になるのは価格取得が全滅した場合のみ。
+    # 誤った0円スナップショットを history.csv に残さないようここでも中断する。
+    if detail_rows and totals_all["total_value"] == 0:
+        print("\n[中断] 保有銘柄の価格を1件も取得できず、評価額が0円になりました。")
+        print("       index.html / history.csv は更新していません。")
+        raise SystemExit(1)
 
     history_rows = update_history(HISTORY_FILE, today.isoformat(), totals_all, totals_by_broker)
 
