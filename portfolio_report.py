@@ -46,7 +46,7 @@ import csv
 import io
 import os
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 import fetch_prices as fp
 
@@ -324,6 +324,89 @@ def fmt_signed_pct(v):
     return f"{sign}{v:.2f}%"
 
 
+def trend_class_of(v) -> str:
+    if v is None:
+        return "flat"
+    if v > 0:
+        return "up"
+    if v < 0:
+        return "down"
+    return "flat"
+
+
+def badge(trend_class: str, text: str) -> str:
+    return f'<span class="change-badge {trend_class}">{text}</span>'
+
+
+def parse_float(s):
+    if s in (None, ""):
+        return None
+    try:
+        return float(s)
+    except (TypeError, ValueError):
+        return None
+
+
+def compute_gain_comparisons(history_rows: list, today: date, current_gain) -> list:
+    """評価損益(全体)の 前日比 / 1年前比 / 年初来 を、history.csv に十分な
+    データが蓄積されている場合のみ算出する。データ不足の項目は返さない。"""
+    if current_gain is None:
+        return []
+
+    today_str = today.isoformat()
+    prior = sorted(
+        (
+            {"date": r["date"], "gain": parse_float(r.get("total_gain"))}
+            for r in history_rows
+            if r["date"] != today_str and parse_float(r.get("total_gain")) is not None
+        ),
+        key=lambda r: r["date"],
+    )
+    if not prior:
+        return []
+
+    comparisons = []
+
+    # 前日比: 直近の記録との比較(実行が毎日でない場合は直近の実行との比較になる)
+    last = prior[-1]
+    comparisons.append(
+        {"label": "前日比", "delta": current_gain - last["gain"], "compare_date": last["date"]}
+    )
+
+    # 1年前比: 365日前の時点に最も近い記録(前後45日以内にある場合のみ採用)
+    year_ago_target = today - timedelta(days=365)
+    year_ago_candidates = [r for r in prior if r["date"] <= year_ago_target.isoformat()]
+    if year_ago_candidates:
+        best = year_ago_candidates[-1]
+        best_date = datetime.strptime(best["date"], "%Y-%m-%d").date()
+        if abs((year_ago_target - best_date).days) <= 45:
+            comparisons.append(
+                {"label": "1年前比", "delta": current_gain - best["gain"], "compare_date": best["date"]}
+            )
+
+    # 年初来: 今年1/1より前の最新の記録
+    year_start = date(today.year, 1, 1)
+    ytd_candidates = [r for r in prior if r["date"] < year_start.isoformat()]
+    if ytd_candidates:
+        best = ytd_candidates[-1]
+        comparisons.append(
+            {"label": "年初来", "delta": current_gain - best["gain"], "compare_date": best["date"]}
+        )
+
+    return comparisons
+
+
+def render_gain_comparisons(comparisons: list) -> str:
+    if not comparisons:
+        return ""
+    items = "".join(
+        f'<div class="stat-sub"><span class="stat-sub-label">{c["label"]}</span>'
+        f'{badge(trend_class_of(c["delta"]), fmt_signed_money(c["delta"]) + "円")}</div>'
+        for c in comparisons
+    )
+    return f'<div class="stat-sub-list">{items}</div>'
+
+
 def render_price_table(price_records: list) -> str:
     rows = []
     for r in price_records:
@@ -331,8 +414,8 @@ def render_price_table(price_records: list) -> str:
             rows.append(
                 f"""
         <tr class="error-row">
-          <td class="label"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a></td>
-          <td colspan="4" class="error">{r['error']}</td>
+          <td class="label" data-label="銘柄"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a></td>
+          <td colspan="4" class="error" data-label="状態"><span class="cell-val">{r['error']}</span></td>
         </tr>"""
             )
             continue
@@ -347,25 +430,26 @@ def render_price_table(price_records: list) -> str:
         else:
             trend_class, arrow = "flat", "―"
 
+        # 米国株はドル建てで取得するため、ドル表記＋円換算を併記する
         if r.get("currency") == "USD":
             price_value = r.get("price_value")
             price_cell = f"${price_value:,.2f}" if price_value is not None else "—"
             price_value_jpy = r.get("price_value_jpy")
             if price_value_jpy is not None:
                 price_cell += f'<span class="sub">(≈{fmt_money(price_value_jpy)}円)</span>'
-            change_value_disp = f"${change_value:+,.2f}" if change_value is not None else "—"
+            change_disp = f"${change_value:+,.2f}" if change_value is not None else "—"
         else:
             price_cell = fmt_money(r.get("price_value"))
-            change_value_disp = fmt_signed_money(change_value)
+            change_disp = fmt_signed_money(change_value)
 
         rows.append(
             f"""
         <tr>
-          <td class="label"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a><span class="sub-name">{r.get('name', '')}</span></td>
-          <td class="num">{price_cell}</td>
-          <td class="num change {trend_class}">{arrow} {change_value_disp}</td>
-          <td class="num change {trend_class}">{fmt_signed_pct(r.get('change_rate_value'))}</td>
-          <td class="num sub">{r.get('date') or '—'}</td>
+          <td class="label" data-label="銘柄"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a><span class="sub-name">{r.get('name', '')}</span></td>
+          <td class="num" data-label="基準価額/株価"><span class="cell-val">{price_cell}</span></td>
+          <td class="num" data-label="前日比"><span class="cell-val">{badge(trend_class, f"{arrow} {change_disp}")}</span></td>
+          <td class="num" data-label="前日比(%)"><span class="cell-val">{badge(trend_class, fmt_signed_pct(r.get('change_rate_value')))}</span></td>
+          <td class="num sub" data-label="基準日"><span class="cell-val">{r.get('date') or '—'}</span></td>
         </tr>"""
         )
     return "".join(rows)
@@ -381,41 +465,41 @@ def render_code_table(code_rows: list, totals: dict) -> str:
             rows.append(
                 f"""
         <tr class="error-row">
-          <td class="label"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a><span class="sub-name">{r.get('name') or ''}</span></td>
-          <td class="num">{fmt_qty(r['quantity'])}</td>
-          <td class="num">{fmt_money(r['avg_unit_price'])}</td>
-          <td class="num">{fmt_money(r['cost_amount'])}</td>
-          <td colspan="3" class="error">{r['price_error']}</td>
+          <td class="label" data-label="銘柄"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a><span class="sub-name">{r.get('name') or ''}</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">{fmt_qty(r['quantity'])}</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">{fmt_money(r['avg_unit_price'])}</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">{fmt_money(r['cost_amount'])}</span></td>
+          <td colspan="3" class="error" data-label="状態"><span class="cell-val">{r['price_error']}</span></td>
         </tr>"""
             )
             continue
 
         gain = r["gain"]
-        trend_class = "up" if gain > 0 else "down" if gain < 0 else "flat"
+        trend_class = trend_class_of(gain)
         rows.append(
             f"""
         <tr>
-          <td class="label"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a><span class="sub-name">{r.get('name') or ''}</span></td>
-          <td class="num">{fmt_qty(r['quantity'])}</td>
-          <td class="num">{fmt_money(r['avg_unit_price'])}</td>
-          <td class="num">{fmt_money(r['cost_amount'])}</td>
-          <td class="num">{fmt_money(r['current_price'])}</td>
-          <td class="num">{fmt_money(r['market_value'])}</td>
-          <td class="num change {trend_class}">{fmt_signed_money(gain)}<span class="sub">({fmt_signed_pct(r['gain_rate'])})</span></td>
+          <td class="label" data-label="銘柄"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a><span class="sub-name">{r.get('name') or ''}</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">{fmt_qty(r['quantity'])}</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">{fmt_money(r['avg_unit_price'])}</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">{fmt_money(r['cost_amount'])}</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">{fmt_money(r['current_price'])}</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">{fmt_money(r['market_value'])}</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val">{badge(trend_class, fmt_signed_money(gain) + '円')}<span class="sub">({fmt_signed_pct(r['gain_rate'])})</span></span></td>
         </tr>"""
         )
 
     total_gain = totals["total_gain"]
-    total_trend = "up" if total_gain > 0 else "down" if total_gain < 0 else "flat"
+    total_trend = trend_class_of(total_gain)
     total_row = f"""
         <tr class="total-row">
-          <td class="label">合計</td>
-          <td class="num">—</td>
-          <td class="num">—</td>
-          <td class="num">{fmt_money(totals['total_cost'])}</td>
-          <td class="num">—</td>
-          <td class="num">{fmt_money(totals['total_value'])}</td>
-          <td class="num change {total_trend}">{fmt_signed_money(total_gain)}<span class="sub">({fmt_signed_pct(totals['total_gain_rate'])})</span></td>
+          <td class="label" data-label="銘柄">合計</td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">—</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">—</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">{fmt_money(totals['total_cost'])}</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">—</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">{fmt_money(totals['total_value'])}</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val">{badge(total_trend, fmt_signed_money(total_gain) + '円')}<span class="sub">({fmt_signed_pct(totals['total_gain_rate'])})</span></span></td>
         </tr>"""
 
     missing_note = ""
@@ -439,31 +523,31 @@ def render_detail_table(detail_rows: list) -> str:
             rows.append(
                 f"""
         <tr class="error-row">
-          <td class="sub">{r['broker']}</td>
-          <td class="sub">{r['account_type']}</td>
-          <td class="label"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a><span class="sub-name">{r.get('name') or ''}</span></td>
-          <td class="num">{fmt_qty(r['quantity'])}</td>
-          <td class="num">{fmt_money(r['avg_unit_price'])}</td>
-          <td class="num">{fmt_money(r['cost_amount'])}</td>
-          <td colspan="3" class="error">{r['price_error']}</td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">{r['broker']}</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">{r['account_type']}</span></td>
+          <td class="label" data-label="銘柄"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a><span class="sub-name">{r.get('name') or ''}</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">{fmt_qty(r['quantity'])}</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">{fmt_money(r['avg_unit_price'])}</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">{fmt_money(r['cost_amount'])}</span></td>
+          <td colspan="3" class="error" data-label="状態"><span class="cell-val">{r['price_error']}</span></td>
         </tr>"""
             )
             continue
 
         gain = r["gain"]
-        trend_class = "up" if gain > 0 else "down" if gain < 0 else "flat"
+        trend_class = trend_class_of(gain)
         rows.append(
             f"""
         <tr>
-          <td class="sub">{r['broker']}</td>
-          <td class="sub">{r['account_type']}</td>
-          <td class="label"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a><span class="sub-name">{r.get('name') or ''}</span></td>
-          <td class="num">{fmt_qty(r['quantity'])}</td>
-          <td class="num">{fmt_money(r['avg_unit_price'])}</td>
-          <td class="num">{fmt_money(r['cost_amount'])}</td>
-          <td class="num">{fmt_money(r['current_price'])}</td>
-          <td class="num">{fmt_money(r['market_value'])}</td>
-          <td class="num change {trend_class}">{fmt_signed_money(gain)}<span class="sub">({fmt_signed_pct(r['gain_rate'])})</span></td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">{r['broker']}</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">{r['account_type']}</span></td>
+          <td class="label" data-label="銘柄"><a href="{r['url']}" target="_blank" rel="noopener">{r['label']}</a><span class="sub-name">{r.get('name') or ''}</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">{fmt_qty(r['quantity'])}</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">{fmt_money(r['avg_unit_price'])}</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">{fmt_money(r['cost_amount'])}</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">{fmt_money(r['current_price'])}</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">{fmt_money(r['market_value'])}</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val">{badge(trend_class, fmt_signed_money(gain) + '円')}<span class="sub">({fmt_signed_pct(r['gain_rate'])})</span></span></td>
         </tr>"""
         )
     return "".join(rows)
@@ -480,14 +564,14 @@ def render_broker_summary_table(totals_by_broker: dict) -> str:
         if t is None:
             continue
         gain = t["total_gain"]
-        trend_class = "up" if gain > 0 else "down" if gain < 0 else "flat"
+        trend_class = trend_class_of(gain)
         rows.append(
             f"""
         <tr>
-          <td class="label">{broker}</td>
-          <td class="num">{fmt_money(t['total_cost'])}</td>
-          <td class="num">{fmt_money(t['total_value'])}</td>
-          <td class="num change {trend_class}">{fmt_signed_money(gain)}<span class="sub">({fmt_signed_pct(t['total_gain_rate'])})</span></td>
+          <td class="label" data-label="証券会社">{broker}</td>
+          <td class="num" data-label="取得金額"><span class="cell-val">{fmt_money(t['total_cost'])}</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">{fmt_money(t['total_value'])}</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val">{badge(trend_class, fmt_signed_money(gain) + '円')}<span class="sub">({fmt_signed_pct(t['total_gain_rate'])})</span></span></td>
         </tr>"""
         )
     return "".join(rows)
@@ -498,8 +582,8 @@ def render_chart_svg(history_rows: list) -> str:
     if len(usable_rows) < 2:
         return '<p class="empty">資産推移グラフの表示には2件以上の履歴(=2回以上の実行)が必要です。</p>'
 
-    width, height = 760, 280
-    pad_l, pad_r, pad_t, pad_b = 64, 16, 16, 28
+    width, height = 760, 300
+    pad_l, pad_r, pad_t, pad_b = 64, 16, 20, 32
     plot_w = width - pad_l - pad_r
     plot_h = height - pad_t - pad_b
     n = len(usable_rows)
@@ -508,23 +592,28 @@ def render_chart_svg(history_rows: list) -> str:
     def series_values(field):
         return [float(r[field]) if r.get(field) not in (None, "") else None for r in usable_rows]
 
-    series_defs = [
-        {"key": "total_cost", "label": "元本(合算)", "css": "line-cost", "dot_css": "pt-cost"},
-        {"key": "total_value", "label": "評価額(合算)", "css": "line-s1", "dot_css": "pt-s1"},
-    ]
+    cost_values = series_values("total_cost")
+    has_cost = any(v is not None for v in cost_values)
+
+    line_defs = [{"key": "total_value", "label": "評価額(合算)", "css": "line-value", "dot_css": "pt-value"}]
     for name, key in BROKERS:
-        series_defs.append(
+        line_defs.append(
             {"key": f"{key}_value", "label": f"評価額({name})", "css": f"line-{key}", "dot_css": f"pt-{key}"}
         )
 
-    series = []
-    for sd in series_defs:
+    line_series = []
+    for sd in line_defs:
         vals = series_values(sd["key"])
         if all(v is None for v in vals):
             continue
-        series.append({**sd, "values": vals})
+        line_series.append({**sd, "values": vals})
 
-    all_vals = [v for s in series for v in s["values"] if v is not None]
+    all_vals = [v for v in cost_values if v is not None] + [
+        v for s in line_series for v in s["values"] if v is not None
+    ]
+    if not all_vals:
+        return '<p class="empty">資産推移グラフの表示には2件以上の履歴(=2回以上の実行)が必要です。</p>'
+
     y_min = min(0, min(all_vals))
     y_max = max(all_vals)
     y_max = y_max * 1.08 if y_max > 0 else 1.0
@@ -535,6 +624,35 @@ def render_chart_svg(history_rows: list) -> str:
 
     def y_pos(v):
         return pad_t + plot_h - (v - y_min) / y_range * plot_h
+
+    gridlines = "".join(
+        f'<line x1="{pad_l}" y1="{pad_t + plot_h * k / 4:.1f}" '
+        f'x2="{width - pad_r}" y2="{pad_t + plot_h * k / 4:.1f}" class="grid" />'
+        for k in range(5)
+    )
+    y_labels = "".join(
+        f'<text x="{pad_l - 8}" y="{pad_t + plot_h * k / 4 + 4:.1f}" '
+        f'class="axis-label" text-anchor="end">'
+        f"{fmt_money(y_max - (y_max - y_min) * k / 4)}</text>"
+        for k in range(5)
+    )
+
+    bars = ""
+    if has_cost:
+        bar_w = max(min(plot_w / n * 0.5, 34), 4)
+        y_zero = y_pos(0)
+        for i, v in enumerate(cost_values):
+            if v is None:
+                continue
+            y_top = y_pos(v)
+            bar_h = max(y_zero - y_top, 0)
+            bars += (
+                # 端の棒がプロット領域からはみ出さないよう左右を丸め込む
+                f'<rect x="{min(max(x_pos(i) - bar_w / 2, pad_l), width - pad_r - bar_w):.1f}" '
+                f'y="{y_top:.1f}" width="{bar_w:.1f}" '
+                f'height="{bar_h:.1f}" rx="4" class="bar-cost">'
+                f"<title>{dates[i]}\n元本(合算): {v:,.0f}円</title></rect>"
+            )
 
     def line_path(vals):
         # None(欠損)がある箇所で線を分割する
@@ -550,46 +668,47 @@ def render_chart_svg(history_rows: list) -> str:
             segments.append(current)
         return " ".join("M" + " L".join(seg) for seg in segments)
 
-    gridlines = "".join(
-        f'<line x1="{pad_l}" y1="{pad_t + plot_h * k / 4:.1f}" '
-        f'x2="{width - pad_r}" y2="{pad_t + plot_h * k / 4:.1f}" class="grid" />'
-        for k in range(5)
-    )
-    y_labels = "".join(
-        f'<text x="{pad_l - 8}" y="{pad_t + plot_h * k / 4 + 4:.1f}" '
-        f'class="axis-label" text-anchor="end">'
-        f"{fmt_money(y_max - (y_max - y_min) * k / 4)}</text>"
-        for k in range(5)
-    )
-
-    paths = "".join(f'<path d="{line_path(s["values"])}" class="{s["css"]}" fill="none" />' for s in series)
+    paths = "".join(f'<path d="{line_path(s["values"])}" class="{s["css"]}" fill="none" />' for s in line_series)
 
     points = ""
-    for s in series:
+    for s in line_series:
         for i, (d, v) in enumerate(zip(dates, s["values"])):
             if v is None:
                 continue
             points += (
-                f'<circle cx="{x_pos(i):.1f}" cy="{y_pos(v):.1f}" r="3" class="{s["dot_css"]}">'
+                f'<circle cx="{x_pos(i):.1f}" cy="{y_pos(v):.1f}" r="3.5" class="{s["dot_css"]}">'
                 f"<title>{d}\n{s['label']}: {v:,.0f}円</title></circle>"
             )
 
     label_idx = sorted(set([0, n // 2, n - 1]))
+    # 両端のラベルは中央揃えだと描画領域からはみ出すため、内側に寄せる
+    def label_anchor(i):
+        if i == 0:
+            return "start"
+        if i == n - 1:
+            return "end"
+        return "middle"
+
     x_labels = "".join(
-        f'<text x="{x_pos(i):.1f}" y="{height - 6}" class="axis-label" text-anchor="middle">{dates[i]}</text>'
+        f'<text x="{x_pos(i):.1f}" y="{height - 6}" class="axis-label" '
+        f'text-anchor="{label_anchor(i)}">{dates[i]}</text>'
         for i in label_idx
     )
 
-    legend = "".join(
+    legend_items = ""
+    if has_cost:
+        legend_items += '<span class="legend-item"><span class="swatch swatch-bar bar-cost-swatch"></span>元本(合算)</span>'
+    legend_items += "".join(
         f'<span class="legend-item"><span class="swatch {s["css"]}-swatch"></span>{s["label"]}</span>'
-        for s in series
+        for s in line_series
     )
 
     return f"""
-    <div class="chart-legend">{legend}</div>
+    <div class="chart-legend">{legend_items}</div>
     <svg viewBox="0 0 {width} {height}" class="asset-chart" role="img" aria-label="資産推移グラフ">
       {gridlines}
       {y_labels}
+      {bars}
       {paths}
       {points}
       {x_labels}
@@ -605,7 +724,10 @@ def render_html(
     totals_by_broker,
     history_rows,
     generated_at,
+    gain_comparisons,
 ) -> str:
+    gain_trend = trend_class_of(totals_all["total_gain"])
+    rate_trend = trend_class_of(totals_all["total_gain_rate"])
     return f"""<!doctype html>
 <html lang="ja">
 <head>
@@ -615,126 +737,167 @@ def render_html(
 <style>
   :root {{
     color-scheme: light;
-    --page: #f9f9f7;
-    --surface: #fcfcfb;
-    --text-primary: #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted: #898781;
-    --gridline: #e1e0d9;
-    --border: rgba(11,11,11,0.10);
-    --up: #006300;
-    --down: #d03b3b;
-    --series-1: #2a78d6;
-    --series-2: #eb6834;
-    --series-3: #1baf7a;
-  }}
-  @media (prefers-color-scheme: dark) {{
-    :root:not([data-theme="light"]) {{
-      color-scheme: dark;
-      --page: #0d0d0d;
-      --surface: #1a1a19;
-      --text-primary: #ffffff;
-      --text-secondary: #c3c2b7;
-      --text-muted: #898781;
-      --gridline: #2c2c2a;
-      --border: rgba(255,255,255,0.10);
-      --up: #0ca30c;
-      --down: #e66767;
-      --series-1: #3987e5;
-      --series-2: #d95926;
-      --series-3: #199e70;
-    }}
-  }}
-  :root[data-theme="dark"] {{
-    color-scheme: dark;
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted: #898781;
-    --gridline: #2c2c2a;
-    --border: rgba(255,255,255,0.10);
-    --up: #0ca30c;
-    --down: #e66767;
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
+    --page: #f4f2ff;
+    --page-accent: #fff6ec;
+    --surface: #ffffff;
+    --text-primary: #211c3d;
+    --text-secondary: #5c5680;
+    --text-muted: #928dae;
+    --gridline: #eae5fb;
+    --border: rgba(33, 28, 61, 0.09);
+    --up: #0a9d5c;
+    --up-bg: #e0faed;
+    --down: #e0334f;
+    --down-bg: #fdeaee;
+    --accent-cost: #6d5ef8;
+    --accent-value: #0ea5c4;
+    --accent-gain: #ff8a3d;
+    --accent-rate: #b350e0;
+    --series-cost: #b7acfb;
+    --series-value: #6d5ef8;
+    --series-sbi: #ff8a3d;
+    --series-rakuten: #0ea5c4;
   }}
   * {{ box-sizing: border-box; }}
   body {{
     margin: 0;
-    padding: 32px 16px 64px;
-    background: var(--page);
+    padding: 28px 14px 64px;
+    background: linear-gradient(180deg, var(--page) 0%, var(--page-accent) 100%);
+    background-attachment: fixed;
     color: var(--text-primary);
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   }}
   .wrap {{ max-width: 1000px; margin: 0 auto; }}
-  h1 {{ font-size: 1.3rem; margin: 0 0 4px; }}
-  h2 {{ font-size: 1.05rem; margin: 40px 0 12px; }}
+  h1 {{
+    font-size: 1.5rem; margin: 0 0 4px; font-weight: 800;
+    background: linear-gradient(90deg, var(--accent-cost), var(--accent-rate));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }}
+  h2 {{
+    font-size: 1.05rem; margin: 40px 0 12px; font-weight: 700;
+    padding-left: 12px; border-left: 5px solid var(--accent-value); color: var(--text-primary);
+  }}
   .meta {{ color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 8px; }}
-  .stat-row {{ display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0 28px; }}
+  .stat-row {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 16px 0 28px; }}
+  @media (min-width: 600px) {{ .stat-row {{ grid-template-columns: repeat(4, 1fr); }} }}
   .stat-tile {{
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 18px;
-    min-width: 150px;
-    flex: 1;
+    border-top: 4px solid var(--tile-accent, var(--accent-value));
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 10px rgba(50, 30, 100, 0.06);
+    min-width: 0;
   }}
-  .stat-tile .stat-label {{ color: var(--text-muted); font-size: 0.75rem; }}
-  .stat-tile .stat-value {{ font-size: 1.3rem; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }}
+  .stat-tile.tile-cost {{ --tile-accent: var(--accent-cost); }}
+  .stat-tile.tile-value {{ --tile-accent: var(--accent-value); }}
+  .stat-tile.tile-gain {{ --tile-accent: var(--accent-gain); }}
+  .stat-tile.tile-rate {{ --tile-accent: var(--accent-rate); }}
+  .stat-tile .stat-label {{ color: var(--text-muted); font-size: 0.74rem; font-weight: 600; }}
+  .stat-tile .stat-value {{
+    font-size: 1.35rem; font-weight: 800; margin-top: 4px; font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }}
   .stat-tile .stat-value.up {{ color: var(--up); }}
   .stat-tile .stat-value.down {{ color: var(--down); }}
+  .stat-sub-list {{ margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }}
+  .stat-sub {{ display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; gap: 8px; }}
+  .stat-sub-label {{ color: var(--text-muted); font-weight: 600; }}
+
+  .change-badge {{
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 9px; border-radius: 999px; font-weight: 700; font-size: 0.85em;
+    white-space: nowrap;
+  }}
+  .change-badge.up {{ color: var(--up); background: var(--up-bg); }}
+  .change-badge.down {{ color: var(--down); background: var(--down-bg); }}
+  .change-badge.flat {{ color: var(--text-muted); background: var(--gridline); }}
+
   .table-scroll {{
     overflow-x: auto;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(50, 30, 100, 0.05);
   }}
   table {{ width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 640px; }}
   thead th {{
-    text-align: right; font-weight: 600; color: var(--text-muted);
-    font-size: 0.76rem; padding: 12px 14px; border-bottom: 1px solid var(--gridline);
-    white-space: nowrap;
+    text-align: right; font-weight: 700; color: var(--text-secondary);
+    font-size: 0.76rem; padding: 12px 14px; border-bottom: 2px solid var(--gridline);
+    white-space: nowrap; background: var(--page);
   }}
-  thead th:first-child {{ text-align: left; }}
+  thead th:first-child {{ text-align: left; border-top-left-radius: 14px; }}
+  thead th:last-child {{ border-top-right-radius: 14px; }}
   tbody td {{
     padding: 11px 14px; border-bottom: 1px solid var(--gridline);
     text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;
   }}
   tbody tr:last-child td {{ border-bottom: none; }}
+  tbody tr:hover td {{ background: var(--page); }}
   td.label {{ text-align: left; white-space: normal; }}
-  td.label a {{ color: var(--text-primary); font-weight: 600; text-decoration: none; }}
-  td.label a:hover {{ text-decoration: underline; }}
+  td.label a {{ color: var(--text-primary); font-weight: 700; text-decoration: none; }}
+  td.label a:hover {{ text-decoration: underline; color: var(--accent-cost); }}
   td.sub {{ text-align: left; color: var(--text-secondary); font-size: 0.82rem; white-space: nowrap; }}
   .sub-name {{ display: block; color: var(--text-muted); font-size: 0.76rem; font-weight: 400; margin-top: 2px; }}
-  td span.sub {{ display: block; color: var(--text-muted); font-size: 0.76rem; font-weight: 400; text-align: right; }}
-  td.change.up, .stat-value.up {{ color: var(--up); }}
-  td.change.down, .stat-value.down {{ color: var(--down); }}
-  td.change.flat {{ color: var(--text-muted); }}
-  tr.total-row td {{ font-weight: 700; border-top: 2px solid var(--gridline); }}
+  td span.sub {{ display: inline-block; color: var(--text-muted); font-size: 0.76rem; font-weight: 400; }}
+  tr.total-row td {{ font-weight: 800; border-top: 2px solid var(--accent-value); background: var(--page); }}
   td.error {{ text-align: left; color: var(--down); }}
   .empty, .note {{ color: var(--text-muted); font-size: 0.85rem; }}
   .note {{ margin-top: 8px; }}
-  .chart-legend {{ display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; font-size: 0.8rem; color: var(--text-secondary); }}
+
+  .chart-legend {{ display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; }}
   .legend-item {{ display: flex; align-items: center; gap: 6px; }}
   .swatch {{ width: 14px; height: 3px; border-radius: 2px; display: inline-block; }}
-  .line-cost-swatch {{ background: var(--text-muted); }}
-  .line-s1-swatch {{ background: var(--series-1); }}
-  .line-sbi-swatch {{ background: var(--series-2); }}
-  .line-rakuten-swatch {{ background: var(--series-3); }}
-  .asset-chart {{ width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }}
-  .line-cost {{ stroke: var(--text-muted); stroke-width: 2; stroke-dasharray: 5 4; }}
-  .line-s1 {{ stroke: var(--series-1); stroke-width: 2; }}
-  .line-sbi {{ stroke: var(--series-2); stroke-width: 2; }}
-  .line-rakuten {{ stroke: var(--series-3); stroke-width: 2; }}
+  .swatch-bar {{ height: 10px; border-radius: 3px; }}
+  .bar-cost-swatch {{ background: var(--series-cost); }}
+  .line-value-swatch {{ background: var(--series-value); }}
+  .line-sbi-swatch {{ background: var(--series-sbi); }}
+  .line-rakuten-swatch {{ background: var(--series-rakuten); }}
+  .asset-chart {{ width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }}
+  .bar-cost {{ fill: var(--series-cost); opacity: 0.75; }}
+  .line-value {{ stroke: var(--series-value); stroke-width: 2.5; }}
+  .line-sbi {{ stroke: var(--series-sbi); stroke-width: 2.5; }}
+  .line-rakuten {{ stroke: var(--series-rakuten); stroke-width: 2.5; }}
   .grid {{ stroke: var(--gridline); stroke-width: 1; }}
-  .pt-cost {{ fill: var(--text-muted); }}
-  .pt-s1 {{ fill: var(--series-1); }}
-  .pt-sbi {{ fill: var(--series-2); }}
-  .pt-rakuten {{ fill: var(--series-3); }}
+  .pt-value {{ fill: var(--series-value); stroke: var(--surface); stroke-width: 1.5; }}
+  .pt-sbi {{ fill: var(--series-sbi); stroke: var(--surface); stroke-width: 1.5; }}
+  .pt-rakuten {{ fill: var(--series-rakuten); stroke: var(--surface); stroke-width: 1.5; }}
   .axis-label {{ fill: var(--text-muted); font-size: 10px; }}
   footer {{ margin-top: 28px; color: var(--text-muted); font-size: 0.78rem; }}
+
+  @media (max-width: 640px) {{
+    .table-scroll {{ overflow-x: visible; background: transparent; border: none; box-shadow: none; border-radius: 0; }}
+    table {{ min-width: 0; }}
+    thead {{ display: none; }}
+    table, tbody, tr, td {{ display: block; width: 100%; }}
+    tbody tr {{
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(50, 30, 100, 0.05);
+    }}
+    tbody tr:last-child {{ margin-bottom: 0; }}
+    tbody tr.total-row {{ border: 2px solid var(--accent-value); background: var(--surface); }}
+    tbody tr.error-row {{ border-color: var(--down); }}
+    td {{
+      display: flex; justify-content: space-between; align-items: center; gap: 14px;
+      padding: 7px 0; border-bottom: 1px dashed var(--gridline) !important;
+      text-align: right; white-space: normal; background: transparent !important;
+    }}
+    td:last-child {{ border-bottom: none !important; }}
+    td::before {{
+      content: attr(data-label);
+      color: var(--text-muted); font-weight: 600; font-size: 0.72rem;
+      text-align: left; flex-shrink: 0;
+    }}
+    .cell-val {{ display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }}
+    td.label {{ padding-top: 4px; padding-bottom: 4px; }}
+    td.label::before {{ padding-top: 2px; }}
+    td.label a {{ text-align: right; }}
+    .stat-row {{ grid-template-columns: repeat(2, 1fr); }}
+  }}
 </style>
 </head>
 <body>
@@ -743,10 +906,10 @@ def render_html(
     <p class="meta">生成日時: {generated_at} / データ取得元: finance.yahoo.co.jp</p>
 
     <div class="stat-row">
-      <div class="stat-tile"><div class="stat-label">取得金額(元本・全体)</div><div class="stat-value">{fmt_money(totals_all['total_cost'])}円</div></div>
-      <div class="stat-tile"><div class="stat-label">評価額(全体)</div><div class="stat-value">{fmt_money(totals_all['total_value'])}円</div></div>
-      <div class="stat-tile"><div class="stat-label">評価損益(全体)</div><div class="stat-value {'up' if totals_all['total_gain'] > 0 else 'down' if totals_all['total_gain'] < 0 else ''}">{fmt_signed_money(totals_all['total_gain'])}円</div></div>
-      <div class="stat-tile"><div class="stat-label">損益率(全体)</div><div class="stat-value {'up' if (totals_all['total_gain_rate'] or 0) > 0 else 'down' if (totals_all['total_gain_rate'] or 0) < 0 else ''}">{fmt_signed_pct(totals_all['total_gain_rate'])}</div></div>
+      <div class="stat-tile tile-cost"><div class="stat-label">取得金額(元本・全体)</div><div class="stat-value">{fmt_money(totals_all['total_cost'])}円</div></div>
+      <div class="stat-tile tile-value"><div class="stat-label">評価額(全体)</div><div class="stat-value">{fmt_money(totals_all['total_value'])}円</div></div>
+      <div class="stat-tile tile-gain"><div class="stat-label">評価損益(全体)</div><div class="stat-value {gain_trend if gain_trend != 'flat' else ''}">{fmt_signed_money(totals_all['total_gain'])}円</div>{render_gain_comparisons(gain_comparisons)}</div>
+      <div class="stat-tile tile-rate"><div class="stat-label">損益率(全体)</div><div class="stat-value {rate_trend if rate_trend != 'flat' else ''}">{fmt_signed_pct(totals_all['total_gain_rate'])}</div></div>
     </div>
 
     <h2>証券会社別サマリー</h2>
@@ -893,10 +1056,18 @@ def main():
         raise SystemExit(1)
 
     history_rows = update_history(HISTORY_FILE, today.isoformat(), totals_all, totals_by_broker)
+    gain_comparisons = compute_gain_comparisons(history_rows, today, totals_all["total_gain"])
 
     generated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     html = render_html(
-        price_records, code_rows, detail_rows, totals_all, totals_by_broker, history_rows, generated_at
+        price_records,
+        code_rows,
+        detail_rows,
+        totals_all,
+        totals_by_broker,
+        history_rows,
+        generated_at,
+        gain_comparisons,
     )
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html)

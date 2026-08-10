@@ -7,138 +7,179 @@
 <style>
   :root {
     color-scheme: light;
-    --page: #f9f9f7;
-    --surface: #fcfcfb;
-    --text-primary: #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted: #898781;
-    --gridline: #e1e0d9;
-    --border: rgba(11,11,11,0.10);
-    --up: #006300;
-    --down: #d03b3b;
-    --series-1: #2a78d6;
-    --series-2: #eb6834;
-    --series-3: #1baf7a;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      color-scheme: dark;
-      --page: #0d0d0d;
-      --surface: #1a1a19;
-      --text-primary: #ffffff;
-      --text-secondary: #c3c2b7;
-      --text-muted: #898781;
-      --gridline: #2c2c2a;
-      --border: rgba(255,255,255,0.10);
-      --up: #0ca30c;
-      --down: #e66767;
-      --series-1: #3987e5;
-      --series-2: #d95926;
-      --series-3: #199e70;
-    }
-  }
-  :root[data-theme="dark"] {
-    color-scheme: dark;
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted: #898781;
-    --gridline: #2c2c2a;
-    --border: rgba(255,255,255,0.10);
-    --up: #0ca30c;
-    --down: #e66767;
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
+    --page: #f4f2ff;
+    --page-accent: #fff6ec;
+    --surface: #ffffff;
+    --text-primary: #211c3d;
+    --text-secondary: #5c5680;
+    --text-muted: #928dae;
+    --gridline: #eae5fb;
+    --border: rgba(33, 28, 61, 0.09);
+    --up: #0a9d5c;
+    --up-bg: #e0faed;
+    --down: #e0334f;
+    --down-bg: #fdeaee;
+    --accent-cost: #6d5ef8;
+    --accent-value: #0ea5c4;
+    --accent-gain: #ff8a3d;
+    --accent-rate: #b350e0;
+    --series-cost: #b7acfb;
+    --series-value: #6d5ef8;
+    --series-sbi: #ff8a3d;
+    --series-rakuten: #0ea5c4;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    padding: 32px 16px 64px;
-    background: var(--page);
+    padding: 28px 14px 64px;
+    background: linear-gradient(180deg, var(--page) 0%, var(--page-accent) 100%);
+    background-attachment: fixed;
     color: var(--text-primary);
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   }
   .wrap { max-width: 1000px; margin: 0 auto; }
-  h1 { font-size: 1.3rem; margin: 0 0 4px; }
-  h2 { font-size: 1.05rem; margin: 40px 0 12px; }
+  h1 {
+    font-size: 1.5rem; margin: 0 0 4px; font-weight: 800;
+    background: linear-gradient(90deg, var(--accent-cost), var(--accent-rate));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  h2 {
+    font-size: 1.05rem; margin: 40px 0 12px; font-weight: 700;
+    padding-left: 12px; border-left: 5px solid var(--accent-value); color: var(--text-primary);
+  }
   .meta { color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 8px; }
-  .stat-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0 28px; }
+  .stat-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 16px 0 28px; }
+  @media (min-width: 600px) { .stat-row { grid-template-columns: repeat(4, 1fr); } }
   .stat-tile {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 18px;
-    min-width: 150px;
-    flex: 1;
+    border-top: 4px solid var(--tile-accent, var(--accent-value));
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 10px rgba(50, 30, 100, 0.06);
+    min-width: 0;
   }
-  .stat-tile .stat-label { color: var(--text-muted); font-size: 0.75rem; }
-  .stat-tile .stat-value { font-size: 1.3rem; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .stat-tile.tile-cost { --tile-accent: var(--accent-cost); }
+  .stat-tile.tile-value { --tile-accent: var(--accent-value); }
+  .stat-tile.tile-gain { --tile-accent: var(--accent-gain); }
+  .stat-tile.tile-rate { --tile-accent: var(--accent-rate); }
+  .stat-tile .stat-label { color: var(--text-muted); font-size: 0.74rem; font-weight: 600; }
+  .stat-tile .stat-value {
+    font-size: 1.35rem; font-weight: 800; margin-top: 4px; font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
   .stat-tile .stat-value.up { color: var(--up); }
   .stat-tile .stat-value.down { color: var(--down); }
+  .stat-sub-list { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+  .stat-sub { display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; gap: 8px; }
+  .stat-sub-label { color: var(--text-muted); font-weight: 600; }
+
+  .change-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 9px; border-radius: 999px; font-weight: 700; font-size: 0.85em;
+    white-space: nowrap;
+  }
+  .change-badge.up { color: var(--up); background: var(--up-bg); }
+  .change-badge.down { color: var(--down); background: var(--down-bg); }
+  .change-badge.flat { color: var(--text-muted); background: var(--gridline); }
+
   .table-scroll {
     overflow-x: auto;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(50, 30, 100, 0.05);
   }
   table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 640px; }
   thead th {
-    text-align: right; font-weight: 600; color: var(--text-muted);
-    font-size: 0.76rem; padding: 12px 14px; border-bottom: 1px solid var(--gridline);
-    white-space: nowrap;
+    text-align: right; font-weight: 700; color: var(--text-secondary);
+    font-size: 0.76rem; padding: 12px 14px; border-bottom: 2px solid var(--gridline);
+    white-space: nowrap; background: var(--page);
   }
-  thead th:first-child { text-align: left; }
+  thead th:first-child { text-align: left; border-top-left-radius: 14px; }
+  thead th:last-child { border-top-right-radius: 14px; }
   tbody td {
     padding: 11px 14px; border-bottom: 1px solid var(--gridline);
     text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;
   }
   tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--page); }
   td.label { text-align: left; white-space: normal; }
-  td.label a { color: var(--text-primary); font-weight: 600; text-decoration: none; }
-  td.label a:hover { text-decoration: underline; }
+  td.label a { color: var(--text-primary); font-weight: 700; text-decoration: none; }
+  td.label a:hover { text-decoration: underline; color: var(--accent-cost); }
   td.sub { text-align: left; color: var(--text-secondary); font-size: 0.82rem; white-space: nowrap; }
   .sub-name { display: block; color: var(--text-muted); font-size: 0.76rem; font-weight: 400; margin-top: 2px; }
-  td span.sub { display: block; color: var(--text-muted); font-size: 0.76rem; font-weight: 400; text-align: right; }
-  td.change.up, .stat-value.up { color: var(--up); }
-  td.change.down, .stat-value.down { color: var(--down); }
-  td.change.flat { color: var(--text-muted); }
-  tr.total-row td { font-weight: 700; border-top: 2px solid var(--gridline); }
+  td span.sub { display: inline-block; color: var(--text-muted); font-size: 0.76rem; font-weight: 400; }
+  tr.total-row td { font-weight: 800; border-top: 2px solid var(--accent-value); background: var(--page); }
   td.error { text-align: left; color: var(--down); }
   .empty, .note { color: var(--text-muted); font-size: 0.85rem; }
   .note { margin-top: 8px; }
-  .chart-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; font-size: 0.8rem; color: var(--text-secondary); }
+
+  .chart-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; }
   .legend-item { display: flex; align-items: center; gap: 6px; }
   .swatch { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
-  .line-cost-swatch { background: var(--text-muted); }
-  .line-s1-swatch { background: var(--series-1); }
-  .line-sbi-swatch { background: var(--series-2); }
-  .line-rakuten-swatch { background: var(--series-3); }
-  .asset-chart { width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
-  .line-cost { stroke: var(--text-muted); stroke-width: 2; stroke-dasharray: 5 4; }
-  .line-s1 { stroke: var(--series-1); stroke-width: 2; }
-  .line-sbi { stroke: var(--series-2); stroke-width: 2; }
-  .line-rakuten { stroke: var(--series-3); stroke-width: 2; }
+  .swatch-bar { height: 10px; border-radius: 3px; }
+  .bar-cost-swatch { background: var(--series-cost); }
+  .line-value-swatch { background: var(--series-value); }
+  .line-sbi-swatch { background: var(--series-sbi); }
+  .line-rakuten-swatch { background: var(--series-rakuten); }
+  .asset-chart { width: 100%; height: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+  .bar-cost { fill: var(--series-cost); opacity: 0.75; }
+  .line-value { stroke: var(--series-value); stroke-width: 2.5; }
+  .line-sbi { stroke: var(--series-sbi); stroke-width: 2.5; }
+  .line-rakuten { stroke: var(--series-rakuten); stroke-width: 2.5; }
   .grid { stroke: var(--gridline); stroke-width: 1; }
-  .pt-cost { fill: var(--text-muted); }
-  .pt-s1 { fill: var(--series-1); }
-  .pt-sbi { fill: var(--series-2); }
-  .pt-rakuten { fill: var(--series-3); }
+  .pt-value { fill: var(--series-value); stroke: var(--surface); stroke-width: 1.5; }
+  .pt-sbi { fill: var(--series-sbi); stroke: var(--surface); stroke-width: 1.5; }
+  .pt-rakuten { fill: var(--series-rakuten); stroke: var(--surface); stroke-width: 1.5; }
   .axis-label { fill: var(--text-muted); font-size: 10px; }
   footer { margin-top: 28px; color: var(--text-muted); font-size: 0.78rem; }
+
+  @media (max-width: 640px) {
+    .table-scroll { overflow-x: visible; background: transparent; border: none; box-shadow: none; border-radius: 0; }
+    table { min-width: 0; }
+    thead { display: none; }
+    table, tbody, tr, td { display: block; width: 100%; }
+    tbody tr {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(50, 30, 100, 0.05);
+    }
+    tbody tr:last-child { margin-bottom: 0; }
+    tbody tr.total-row { border: 2px solid var(--accent-value); background: var(--surface); }
+    tbody tr.error-row { border-color: var(--down); }
+    td {
+      display: flex; justify-content: space-between; align-items: center; gap: 14px;
+      padding: 7px 0; border-bottom: 1px dashed var(--gridline) !important;
+      text-align: right; white-space: normal; background: transparent !important;
+    }
+    td:last-child { border-bottom: none !important; }
+    td::before {
+      content: attr(data-label);
+      color: var(--text-muted); font-weight: 600; font-size: 0.72rem;
+      text-align: left; flex-shrink: 0;
+    }
+    .cell-val { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    td.label { padding-top: 4px; padding-bottom: 4px; }
+    td.label::before { padding-top: 2px; }
+    td.label a { text-align: right; }
+    .stat-row { grid-template-columns: repeat(2, 1fr); }
+  }
 </style>
 </head>
 <body>
   <div class="wrap">
     <h1>資産状況レポート</h1>
-    <p class="meta">生成日時: 2026-08-10 14:39:10 / データ取得元: finance.yahoo.co.jp</p>
+    <p class="meta">生成日時: 2026-08-10 14:43:32 / データ取得元: finance.yahoo.co.jp</p>
 
     <div class="stat-row">
-      <div class="stat-tile"><div class="stat-label">取得金額(元本・全体)</div><div class="stat-value">8,766,998円</div></div>
-      <div class="stat-tile"><div class="stat-label">評価額(全体)</div><div class="stat-value">12,041,669円</div></div>
-      <div class="stat-tile"><div class="stat-label">評価損益(全体)</div><div class="stat-value up">+3,274,672円</div></div>
-      <div class="stat-tile"><div class="stat-label">損益率(全体)</div><div class="stat-value up">+37.35%</div></div>
+      <div class="stat-tile tile-cost"><div class="stat-label">取得金額(元本・全体)</div><div class="stat-value">8,766,998円</div></div>
+      <div class="stat-tile tile-value"><div class="stat-label">評価額(全体)</div><div class="stat-value">12,041,678円</div></div>
+      <div class="stat-tile tile-gain"><div class="stat-label">評価損益(全体)</div><div class="stat-value up">+3,274,680円</div><div class="stat-sub-list"><div class="stat-sub"><span class="stat-sub-label">前日比</span><span class="change-badge up">+8,288円</span></div></div></div>
+      <div class="stat-tile tile-rate"><div class="stat-label">損益率(全体)</div><div class="stat-value up">+37.35%</div></div>
     </div>
 
     <h2>証券会社別サマリー</h2>
@@ -154,16 +195,16 @@
         </thead>
         <tbody>
         <tr>
-          <td class="label">SBI証券</td>
-          <td class="num">7,897,064</td>
-          <td class="num">10,122,898</td>
-          <td class="num change up">+2,225,834<span class="sub">(+28.19%)</span></td>
+          <td class="label" data-label="証券会社">SBI証券</td>
+          <td class="num" data-label="取得金額"><span class="cell-val">7,897,064</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">10,122,898</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+2,225,834円</span><span class="sub">(+28.19%)</span></span></td>
         </tr>
         <tr>
-          <td class="label">楽天証券</td>
-          <td class="num">869,934</td>
-          <td class="num">1,918,772</td>
-          <td class="num change up">+1,048,838<span class="sub">(+120.57%)</span></td>
+          <td class="label" data-label="証券会社">楽天証券</td>
+          <td class="num" data-label="取得金額"><span class="cell-val">869,934</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">1,918,780</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+1,048,847円</span><span class="sub">(+120.57%)</span></span></td>
         </tr>
         </tbody>
       </table>
@@ -185,121 +226,121 @@
         </thead>
         <tbody>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/03311187" target="_blank" rel="noopener">SP500</a><span class="sub-name">eMAXIS Slim米国株式(S&P500)</span></td>
-          <td class="num">996,567</td>
-          <td class="num">28,033</td>
-          <td class="num">2,793,661</td>
-          <td class="num">44,975</td>
-          <td class="num">4,482,060</td>
-          <td class="num change up">+1,688,399<span class="sub">(+60.44%)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/03311187" target="_blank" rel="noopener">SP500</a><span class="sub-name">eMAXIS Slim米国株式(S&P500)</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">996,567</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">28,033</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">2,793,661</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">44,975</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">4,482,060</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+1,688,399円</span><span class="sub">(+60.44%)</span></span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/04311181" target="_blank" rel="noopener">Fang</a><span class="sub-name">iFreeNEXT FANG+インデックス</span></td>
-          <td class="num">397,854</td>
-          <td class="num">79,293</td>
-          <td class="num">3,154,723</td>
-          <td class="num">98,332</td>
-          <td class="num">3,912,178</td>
-          <td class="num change up">+757,455<span class="sub">(+24.01%)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/04311181" target="_blank" rel="noopener">Fang</a><span class="sub-name">iFreeNEXT FANG+インデックス</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">397,854</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">79,293</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">3,154,723</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">98,332</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">3,912,178</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+757,455円</span><span class="sub">(+24.01%)</span></span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/04314243" target="_blank" rel="noopener">一歩テック</a><span class="sub-name">一歩先いく US テック・トップ20インデックス</span></td>
-          <td class="num">610,834</td>
-          <td class="num">17,277</td>
-          <td class="num">1,055,337</td>
-          <td class="num">19,820</td>
-          <td class="num">1,210,673</td>
-          <td class="num change up">+155,336<span class="sub">(+14.72%)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/04314243" target="_blank" rel="noopener">一歩テック</a><span class="sub-name">一歩先いく US テック・トップ20インデックス</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">610,834</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">17,277</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">1,055,337</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">19,820</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">1,210,673</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+155,336円</span><span class="sub">(+14.72%)</span></span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/29313233" target="_blank" rel="noopener">NAS100</a><span class="sub-name">ニッセイ NASDAQ100インデックスファンド＜購･換無＞</span></td>
-          <td class="num">365,681</td>
-          <td class="num">18,322</td>
-          <td class="num">670,000</td>
-          <td class="num">27,787</td>
-          <td class="num">1,016,118</td>
-          <td class="num change up">+346,118<span class="sub">(+51.66%)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/29313233" target="_blank" rel="noopener">NAS100</a><span class="sub-name">ニッセイ NASDAQ100インデックスファンド＜購･換無＞</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">365,681</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">18,322</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">670,000</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">27,787</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">1,016,118</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+346,118円</span><span class="sub">(+51.66%)</span></span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/2244.T" target="_blank" rel="noopener">2244(成、ETF)</a><span class="sub-name">GX US テック・トップ20</span></td>
-          <td class="num">143</td>
-          <td class="num">2,086</td>
-          <td class="num">298,298</td>
-          <td class="num">3,644</td>
-          <td class="num">521,092</td>
-          <td class="num change up">+222,794<span class="sub">(+74.69%)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/2244.T" target="_blank" rel="noopener">2244(成、ETF)</a><span class="sub-name">GX US テック・トップ20</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">143</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">2,086</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">298,298</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">3,644</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">521,092</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+222,794円</span><span class="sub">(+74.69%)</span></span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/03311182" target="_blank" rel="noopener">日経225</a><span class="sub-name">eMAXIS Slim国内株式(日経平均)</span></td>
-          <td class="num">115,786</td>
-          <td class="num">25,910</td>
-          <td class="num">300,000</td>
-          <td class="num">32,473</td>
-          <td class="num">375,992</td>
-          <td class="num change up">+75,992<span class="sub">(+25.33%)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/03311182" target="_blank" rel="noopener">日経225</a><span class="sub-name">eMAXIS Slim国内株式(日経平均)</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">115,786</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">25,910</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">300,000</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">32,473</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">375,992</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+75,992円</span><span class="sub">(+25.33%)</span></span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/8931A236" target="_blank" rel="noopener">iシェアーズゴールド(成)</a><span class="sub-name">SBI・iシェアーズ・ゴールド(H無)</span></td>
-          <td class="num">113,545</td>
-          <td class="num">26,421</td>
-          <td class="num">300,000</td>
-          <td class="num">24,163</td>
-          <td class="num">274,359</td>
-          <td class="num change down">-25,641<span class="sub">(-8.55%)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/8931A236" target="_blank" rel="noopener">iシェアーズゴールド(成)</a><span class="sub-name">SBI・iシェアーズ・ゴールド(H無)</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">113,545</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">26,421</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">300,000</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">24,163</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">274,359</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge down">-25,641円</span><span class="sub">(-8.55%)</span></span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/02311251" target="_blank" rel="noopener">ゴルNAS(特)</a><span class="sub-name">Tracers NASDAQ100ゴールドプラス</span></td>
-          <td class="num">53,427</td>
-          <td class="num">16,603</td>
-          <td class="num">88,704</td>
-          <td class="num">18,717</td>
-          <td class="num">99,999</td>
-          <td class="num change up">+11,295<span class="sub">(+12.73%)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/02311251" target="_blank" rel="noopener">ゴルNAS(特)</a><span class="sub-name">Tracers NASDAQ100ゴールドプラス</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">53,427</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">16,603</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">88,704</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">18,717</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">99,999</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+11,295円</span><span class="sub">(+12.73%)</span></span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/0331418A" target="_blank" rel="noopener">オルカン</a><span class="sub-name">eMAXIS Slim全世界株式(オール･カントリー)</span></td>
-          <td class="num">11,441</td>
-          <td class="num">15,732</td>
-          <td class="num">17,999</td>
-          <td class="num">38,302</td>
-          <td class="num">43,821</td>
-          <td class="num change up">+25,822<span class="sub">(+143.47%)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/0331418A" target="_blank" rel="noopener">オルカン</a><span class="sub-name">eMAXIS Slim全世界株式(オール･カントリー)</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">11,441</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">15,732</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">17,999</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">38,302</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">43,821</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+25,822円</span><span class="sub">(+143.47%)</span></span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/SPCX" target="_blank" rel="noopener">SPCX</a><span class="sub-name">スペース・エクスプロレーション・テクノロジーズ</span></td>
-          <td class="num">2</td>
-          <td class="num">21,638</td>
-          <td class="num">43,276</td>
-          <td class="num">21,074</td>
-          <td class="num">42,149</td>
-          <td class="num change down">-1,127<span class="sub">(-2.60%)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/SPCX" target="_blank" rel="noopener">SPCX</a><span class="sub-name">スペース・エクスプロレーション・テクノロジーズ</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">2</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">21,638</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">43,276</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">21,079</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">42,157</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge down">-1,118円</span><span class="sub">(-2.58%)</span></span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/9I312179" target="_blank" rel="noopener">楽天VTI</a><span class="sub-name">楽天・全米株式インデックス･ファンド</span></td>
-          <td class="num">7,392</td>
-          <td class="num">20,292</td>
-          <td class="num">15,000</td>
-          <td class="num">45,423</td>
-          <td class="num">33,577</td>
-          <td class="num change up">+18,577<span class="sub">(+123.84%)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/9I312179" target="_blank" rel="noopener">楽天VTI</a><span class="sub-name">楽天・全米株式インデックス･ファンド</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">7,392</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">20,292</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">15,000</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">45,423</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">33,577</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+18,577円</span><span class="sub">(+123.84%)</span></span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/29314233" target="_blank" rel="noopener">SOX</a><span class="sub-name">ニッセイ SOXインデックス(米国半導体株)＜購･換無＞</span></td>
-          <td class="num">6,468</td>
-          <td class="num">46,382</td>
-          <td class="num">30,000</td>
-          <td class="num">45,844</td>
-          <td class="num">29,652</td>
-          <td class="num change down">-348<span class="sub">(-1.16%)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/29314233" target="_blank" rel="noopener">SOX</a><span class="sub-name">ニッセイ SOXインデックス(米国半導体株)＜購･換無＞</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">6,468</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">46,382</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">30,000</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">45,844</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">29,652</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge down">-348円</span><span class="sub">(-1.16%)</span></span></td>
         </tr>
         <tr class="total-row">
-          <td class="label">合計</td>
-          <td class="num">—</td>
-          <td class="num">—</td>
-          <td class="num">8,766,998</td>
-          <td class="num">—</td>
-          <td class="num">12,041,669</td>
-          <td class="num change up">+3,274,672<span class="sub">(+37.35%)</span></td>
+          <td class="label" data-label="銘柄">合計</td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">—</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">—</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">8,766,998</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">—</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">12,041,678</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+3,274,680円</span><span class="sub">(+37.35%)</span></span></td>
         </tr>
         </tbody>
       </table>
@@ -324,169 +365,169 @@
         </thead>
         <tbody>
         <tr>
-          <td class="sub">SBI証券</td>
-          <td class="sub">特定口座</td>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/02311251" target="_blank" rel="noopener">ゴルNAS(特)</a><span class="sub-name">Tracers NASDAQ100ゴールドプラス</span></td>
-          <td class="num">53,427</td>
-          <td class="num">16,603</td>
-          <td class="num">88,704</td>
-          <td class="num">18,717</td>
-          <td class="num">99,999</td>
-          <td class="num change up">+11,295<span class="sub">(+12.73%)</span></td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">SBI証券</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">特定口座</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/02311251" target="_blank" rel="noopener">ゴルNAS(特)</a><span class="sub-name">Tracers NASDAQ100ゴールドプラス</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">53,427</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">16,603</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">88,704</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">18,717</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">99,999</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+11,295円</span><span class="sub">(+12.73%)</span></span></td>
         </tr>
         <tr>
-          <td class="sub">SBI証券</td>
-          <td class="sub">NISA(つみたて投資枠)</td>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/04311181" target="_blank" rel="noopener">Fang</a><span class="sub-name">iFreeNEXT FANG+インデックス</span></td>
-          <td class="num">251,220</td>
-          <td class="num">76,826</td>
-          <td class="num">1,930,022</td>
-          <td class="num">98,332</td>
-          <td class="num">2,470,297</td>
-          <td class="num change up">+540,275<span class="sub">(+27.99%)</span></td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">SBI証券</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">NISA(つみたて投資枠)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/04311181" target="_blank" rel="noopener">Fang</a><span class="sub-name">iFreeNEXT FANG+インデックス</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">251,220</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">76,826</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">1,930,022</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">98,332</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">2,470,297</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+540,275円</span><span class="sub">(+27.99%)</span></span></td>
         </tr>
         <tr>
-          <td class="sub">SBI証券</td>
-          <td class="sub">NISA(つみたて投資枠)</td>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/03311187" target="_blank" rel="noopener">SP500</a><span class="sub-name">eMAXIS Slim米国株式(S&P500)</span></td>
-          <td class="num">62,332</td>
-          <td class="num">33,691</td>
-          <td class="num">210,002</td>
-          <td class="num">44,975</td>
-          <td class="num">280,338</td>
-          <td class="num change up">+70,336<span class="sub">(+33.49%)</span></td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">SBI証券</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">NISA(つみたて投資枠)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/03311187" target="_blank" rel="noopener">SP500</a><span class="sub-name">eMAXIS Slim米国株式(S&P500)</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">62,332</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">33,691</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">210,002</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">44,975</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">280,338</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+70,336円</span><span class="sub">(+33.49%)</span></span></td>
         </tr>
         <tr>
-          <td class="sub">SBI証券</td>
-          <td class="sub">NISA(成長投資枠)</td>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/03311187" target="_blank" rel="noopener">SP500</a><span class="sub-name">eMAXIS Slim米国株式(S&P500)</span></td>
-          <td class="num">534,185</td>
-          <td class="num">33,509</td>
-          <td class="num">1,790,000</td>
-          <td class="num">44,975</td>
-          <td class="num">2,402,497</td>
-          <td class="num change up">+612,497<span class="sub">(+34.22%)</span></td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">SBI証券</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">NISA(成長投資枠)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/03311187" target="_blank" rel="noopener">SP500</a><span class="sub-name">eMAXIS Slim米国株式(S&P500)</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">534,185</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">33,509</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">1,790,000</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">44,975</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">2,402,497</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+612,497円</span><span class="sub">(+34.22%)</span></span></td>
         </tr>
         <tr>
-          <td class="sub">SBI証券</td>
-          <td class="sub">NISA(成長投資枠)</td>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/04311181" target="_blank" rel="noopener">Fang</a><span class="sub-name">iFreeNEXT FANG+インデックス</span></td>
-          <td class="num">146,634</td>
-          <td class="num">83,521</td>
-          <td class="num">1,224,701</td>
-          <td class="num">98,332</td>
-          <td class="num">1,441,881</td>
-          <td class="num change up">+217,180<span class="sub">(+17.73%)</span></td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">SBI証券</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">NISA(成長投資枠)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/04311181" target="_blank" rel="noopener">Fang</a><span class="sub-name">iFreeNEXT FANG+インデックス</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">146,634</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">83,521</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">1,224,701</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">98,332</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">1,441,881</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+217,180円</span><span class="sub">(+17.73%)</span></span></td>
         </tr>
         <tr>
-          <td class="sub">SBI証券</td>
-          <td class="sub">NISA(成長投資枠)</td>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/04314243" target="_blank" rel="noopener">一歩テック</a><span class="sub-name">一歩先いく US テック・トップ20インデックス</span></td>
-          <td class="num">610,834</td>
-          <td class="num">17,277</td>
-          <td class="num">1,055,337</td>
-          <td class="num">19,820</td>
-          <td class="num">1,210,673</td>
-          <td class="num change up">+155,336<span class="sub">(+14.72%)</span></td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">SBI証券</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">NISA(成長投資枠)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/04314243" target="_blank" rel="noopener">一歩テック</a><span class="sub-name">一歩先いく US テック・トップ20インデックス</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">610,834</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">17,277</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">1,055,337</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">19,820</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">1,210,673</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+155,336円</span><span class="sub">(+14.72%)</span></span></td>
         </tr>
         <tr>
-          <td class="sub">SBI証券</td>
-          <td class="sub">NISA(成長投資枠)</td>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/29313233" target="_blank" rel="noopener">NAS100</a><span class="sub-name">ニッセイ NASDAQ100インデックスファンド＜購･換無＞</span></td>
-          <td class="num">365,681</td>
-          <td class="num">18,322</td>
-          <td class="num">670,000</td>
-          <td class="num">27,787</td>
-          <td class="num">1,016,118</td>
-          <td class="num change up">+346,118<span class="sub">(+51.66%)</span></td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">SBI証券</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">NISA(成長投資枠)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/29313233" target="_blank" rel="noopener">NAS100</a><span class="sub-name">ニッセイ NASDAQ100インデックスファンド＜購･換無＞</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">365,681</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">18,322</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">670,000</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">27,787</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">1,016,118</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+346,118円</span><span class="sub">(+51.66%)</span></span></td>
         </tr>
         <tr>
-          <td class="sub">SBI証券</td>
-          <td class="sub">NISA(成長投資枠)</td>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/2244.T" target="_blank" rel="noopener">2244(成、ETF)</a><span class="sub-name">GX US テック・トップ20</span></td>
-          <td class="num">143</td>
-          <td class="num">2,086</td>
-          <td class="num">298,298</td>
-          <td class="num">3,644</td>
-          <td class="num">521,092</td>
-          <td class="num change up">+222,794<span class="sub">(+74.69%)</span></td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">SBI証券</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">NISA(成長投資枠)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/2244.T" target="_blank" rel="noopener">2244(成、ETF)</a><span class="sub-name">GX US テック・トップ20</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">143</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">2,086</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">298,298</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">3,644</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">521,092</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+222,794円</span><span class="sub">(+74.69%)</span></span></td>
         </tr>
         <tr>
-          <td class="sub">SBI証券</td>
-          <td class="sub">NISA(成長投資枠)</td>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/03311182" target="_blank" rel="noopener">日経225</a><span class="sub-name">eMAXIS Slim国内株式(日経平均)</span></td>
-          <td class="num">115,786</td>
-          <td class="num">25,910</td>
-          <td class="num">300,000</td>
-          <td class="num">32,473</td>
-          <td class="num">375,992</td>
-          <td class="num change up">+75,992<span class="sub">(+25.33%)</span></td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">SBI証券</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">NISA(成長投資枠)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/03311182" target="_blank" rel="noopener">日経225</a><span class="sub-name">eMAXIS Slim国内株式(日経平均)</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">115,786</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">25,910</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">300,000</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">32,473</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">375,992</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+75,992円</span><span class="sub">(+25.33%)</span></span></td>
         </tr>
         <tr>
-          <td class="sub">SBI証券</td>
-          <td class="sub">NISA(成長投資枠)</td>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/8931A236" target="_blank" rel="noopener">iシェアーズゴールド(成)</a><span class="sub-name">SBI・iシェアーズ・ゴールド(H無)</span></td>
-          <td class="num">113,545</td>
-          <td class="num">26,421</td>
-          <td class="num">300,000</td>
-          <td class="num">24,163</td>
-          <td class="num">274,359</td>
-          <td class="num change down">-25,641<span class="sub">(-8.55%)</span></td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">SBI証券</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">NISA(成長投資枠)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/8931A236" target="_blank" rel="noopener">iシェアーズゴールド(成)</a><span class="sub-name">SBI・iシェアーズ・ゴールド(H無)</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">113,545</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">26,421</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">300,000</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">24,163</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">274,359</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge down">-25,641円</span><span class="sub">(-8.55%)</span></span></td>
         </tr>
         <tr>
-          <td class="sub">SBI証券</td>
-          <td class="sub">NISA(成長投資枠)</td>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/29314233" target="_blank" rel="noopener">SOX</a><span class="sub-name">ニッセイ SOXインデックス(米国半導体株)＜購･換無＞</span></td>
-          <td class="num">6,468</td>
-          <td class="num">46,382</td>
-          <td class="num">30,000</td>
-          <td class="num">45,844</td>
-          <td class="num">29,652</td>
-          <td class="num change down">-348<span class="sub">(-1.16%)</span></td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">SBI証券</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">NISA(成長投資枠)</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/29314233" target="_blank" rel="noopener">SOX</a><span class="sub-name">ニッセイ SOXインデックス(米国半導体株)＜購･換無＞</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">6,468</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">46,382</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">30,000</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">45,844</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">29,652</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge down">-348円</span><span class="sub">(-1.16%)</span></span></td>
         </tr>
         <tr>
-          <td class="sub">楽天証券</td>
-          <td class="sub">特定口座</td>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/SPCX" target="_blank" rel="noopener">SPCX</a><span class="sub-name">スペース・エクスプロレーション・テクノロジーズ</span></td>
-          <td class="num">2</td>
-          <td class="num">21,638</td>
-          <td class="num">43,276</td>
-          <td class="num">21,074</td>
-          <td class="num">42,149</td>
-          <td class="num change down">-1,127<span class="sub">(-2.60%)</span></td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">楽天証券</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">特定口座</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/SPCX" target="_blank" rel="noopener">SPCX</a><span class="sub-name">スペース・エクスプロレーション・テクノロジーズ</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">2</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">21,638</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">43,276</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">21,079</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">42,157</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge down">-1,118円</span><span class="sub">(-2.58%)</span></span></td>
         </tr>
         <tr>
-          <td class="sub">楽天証券</td>
-          <td class="sub">旧NISA</td>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/03311187" target="_blank" rel="noopener">SP500</a><span class="sub-name">eMAXIS Slim米国株式(S&P500)</span></td>
-          <td class="num">400,050</td>
-          <td class="num">19,839</td>
-          <td class="num">793,659</td>
-          <td class="num">44,975</td>
-          <td class="num">1,799,225</td>
-          <td class="num change up">+1,005,566<span class="sub">(+126.70%)</span></td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">楽天証券</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">旧NISA</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/03311187" target="_blank" rel="noopener">SP500</a><span class="sub-name">eMAXIS Slim米国株式(S&P500)</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">400,050</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">19,839</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">793,659</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">44,975</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">1,799,225</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+1,005,566円</span><span class="sub">(+126.70%)</span></span></td>
         </tr>
         <tr>
-          <td class="sub">楽天証券</td>
-          <td class="sub">旧NISA</td>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/0331418A" target="_blank" rel="noopener">オルカン</a><span class="sub-name">eMAXIS Slim全世界株式(オール･カントリー)</span></td>
-          <td class="num">11,441</td>
-          <td class="num">15,732</td>
-          <td class="num">17,999</td>
-          <td class="num">38,302</td>
-          <td class="num">43,821</td>
-          <td class="num change up">+25,822<span class="sub">(+143.47%)</span></td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">楽天証券</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">旧NISA</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/0331418A" target="_blank" rel="noopener">オルカン</a><span class="sub-name">eMAXIS Slim全世界株式(オール･カントリー)</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">11,441</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">15,732</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">17,999</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">38,302</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">43,821</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+25,822円</span><span class="sub">(+143.47%)</span></span></td>
         </tr>
         <tr>
-          <td class="sub">楽天証券</td>
-          <td class="sub">旧NISA</td>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/9I312179" target="_blank" rel="noopener">楽天VTI</a><span class="sub-name">楽天・全米株式インデックス･ファンド</span></td>
-          <td class="num">7,392</td>
-          <td class="num">20,292</td>
-          <td class="num">15,000</td>
-          <td class="num">45,423</td>
-          <td class="num">33,577</td>
-          <td class="num change up">+18,577<span class="sub">(+123.84%)</span></td>
+          <td class="sub" data-label="証券会社"><span class="cell-val">楽天証券</span></td>
+          <td class="sub" data-label="口座種別"><span class="cell-val">旧NISA</span></td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/9I312179" target="_blank" rel="noopener">楽天VTI</a><span class="sub-name">楽天・全米株式インデックス･ファンド</span></td>
+          <td class="num" data-label="保有口数/株数"><span class="cell-val">7,392</span></td>
+          <td class="num" data-label="平均取得単価"><span class="cell-val">20,292</span></td>
+          <td class="num" data-label="取得金額"><span class="cell-val">15,000</span></td>
+          <td class="num" data-label="現在価格"><span class="cell-val">45,423</span></td>
+          <td class="num" data-label="評価額"><span class="cell-val">33,577</span></td>
+          <td class="num" data-label="評価損益(率)"><span class="cell-val"><span class="change-badge up">+18,577円</span><span class="sub">(+123.84%)</span></span></td>
         </tr>
         </tbody>
       </table>
@@ -494,25 +535,26 @@
 
     <h2>資産推移</h2>
     
-    <div class="chart-legend"><span class="legend-item"><span class="swatch line-cost-swatch"></span>元本(合算)</span><span class="legend-item"><span class="swatch line-s1-swatch"></span>評価額(合算)</span><span class="legend-item"><span class="swatch line-sbi-swatch"></span>評価額(SBI証券)</span><span class="legend-item"><span class="swatch line-rakuten-swatch"></span>評価額(楽天証券)</span></div>
-    <svg viewBox="0 0 760 280" class="asset-chart" role="img" aria-label="資産推移グラフ">
-      <line x1="64" y1="16.0" x2="744" y2="16.0" class="grid" /><line x1="64" y1="75.0" x2="744" y2="75.0" class="grid" /><line x1="64" y1="134.0" x2="744" y2="134.0" class="grid" /><line x1="64" y1="193.0" x2="744" y2="193.0" class="grid" /><line x1="64" y1="252.0" x2="744" y2="252.0" class="grid" />
-      <text x="56" y="20.0" class="axis-label" text-anchor="end">13,005,003</text><text x="56" y="79.0" class="axis-label" text-anchor="end">9,753,752</text><text x="56" y="138.0" class="axis-label" text-anchor="end">6,502,501</text><text x="56" y="197.0" class="axis-label" text-anchor="end">3,251,251</text><text x="56" y="256.0" class="axis-label" text-anchor="end">0</text>
-      <path d="M64.0,92.9 L404.0,92.9 L744.0,92.9" class="line-cost" fill="none" /><path d="M64.0,33.6 L404.0,33.6 L744.0,33.5" class="line-s1" fill="none" /><path d="M64.0,68.4 L404.0,68.4 L744.0,68.3" class="line-sbi" fill="none" /><path d="M64.0,217.2 L404.0,217.2 L744.0,217.2" class="line-rakuten" fill="none" />
-      <circle cx="64.0" cy="92.9" r="3" class="pt-cost"><title>2026-08-08
-元本(合算): 8,766,998円</title></circle><circle cx="404.0" cy="92.9" r="3" class="pt-cost"><title>2026-08-09
-元本(合算): 8,766,998円</title></circle><circle cx="744.0" cy="92.9" r="3" class="pt-cost"><title>2026-08-10
-元本(合算): 8,766,998円</title></circle><circle cx="64.0" cy="33.6" r="3" class="pt-s1"><title>2026-08-08
-評価額(合算): 12,033,390円</title></circle><circle cx="404.0" cy="33.6" r="3" class="pt-s1"><title>2026-08-09
-評価額(合算): 12,033,390円</title></circle><circle cx="744.0" cy="33.5" r="3" class="pt-s1"><title>2026-08-10
-評価額(合算): 12,041,669円</title></circle><circle cx="64.0" cy="68.4" r="3" class="pt-sbi"><title>2026-08-08
-評価額(SBI証券): 10,114,747円</title></circle><circle cx="404.0" cy="68.4" r="3" class="pt-sbi"><title>2026-08-09
-評価額(SBI証券): 10,114,747円</title></circle><circle cx="744.0" cy="68.3" r="3" class="pt-sbi"><title>2026-08-10
-評価額(SBI証券): 10,122,898円</title></circle><circle cx="64.0" cy="217.2" r="3" class="pt-rakuten"><title>2026-08-08
-評価額(楽天証券): 1,918,644円</title></circle><circle cx="404.0" cy="217.2" r="3" class="pt-rakuten"><title>2026-08-09
-評価額(楽天証券): 1,918,644円</title></circle><circle cx="744.0" cy="217.2" r="3" class="pt-rakuten"><title>2026-08-10
-評価額(楽天証券): 1,918,772円</title></circle>
-      <text x="64.0" y="274" class="axis-label" text-anchor="middle">2026-08-08</text><text x="404.0" y="274" class="axis-label" text-anchor="middle">2026-08-09</text><text x="744.0" y="274" class="axis-label" text-anchor="middle">2026-08-10</text>
+    <div class="chart-legend"><span class="legend-item"><span class="swatch swatch-bar bar-cost-swatch"></span>元本(合算)</span><span class="legend-item"><span class="swatch line-value-swatch"></span>評価額(合算)</span><span class="legend-item"><span class="swatch line-sbi-swatch"></span>評価額(SBI証券)</span><span class="legend-item"><span class="swatch line-rakuten-swatch"></span>評価額(楽天証券)</span></div>
+    <svg viewBox="0 0 760 300" class="asset-chart" role="img" aria-label="資産推移グラフ">
+      <line x1="64" y1="20.0" x2="744" y2="20.0" class="grid" /><line x1="64" y1="82.0" x2="744" y2="82.0" class="grid" /><line x1="64" y1="144.0" x2="744" y2="144.0" class="grid" /><line x1="64" y1="206.0" x2="744" y2="206.0" class="grid" /><line x1="64" y1="268.0" x2="744" y2="268.0" class="grid" />
+      <text x="56" y="24.0" class="axis-label" text-anchor="end">13,005,012</text><text x="56" y="86.0" class="axis-label" text-anchor="end">9,753,759</text><text x="56" y="148.0" class="axis-label" text-anchor="end">6,502,506</text><text x="56" y="210.0" class="axis-label" text-anchor="end">3,251,253</text><text x="56" y="272.0" class="axis-label" text-anchor="end">0</text>
+      <rect x="64.0" y="100.8" width="34.0" height="167.2" rx="4" class="bar-cost"><title>2026-08-08
+元本(合算): 8,766,998円</title></rect><rect x="387.0" y="100.8" width="34.0" height="167.2" rx="4" class="bar-cost"><title>2026-08-09
+元本(合算): 8,766,998円</title></rect><rect x="710.0" y="100.8" width="34.0" height="167.2" rx="4" class="bar-cost"><title>2026-08-10
+元本(合算): 8,766,998円</title></rect>
+      <path d="M64.0,38.5 L404.0,38.5 L744.0,38.4" class="line-value" fill="none" /><path d="M64.0,75.1 L404.0,75.1 L744.0,75.0" class="line-sbi" fill="none" /><path d="M64.0,231.4 L404.0,231.4 L744.0,231.4" class="line-rakuten" fill="none" />
+      <circle cx="64.0" cy="38.5" r="3.5" class="pt-value"><title>2026-08-08
+評価額(合算): 12,033,390円</title></circle><circle cx="404.0" cy="38.5" r="3.5" class="pt-value"><title>2026-08-09
+評価額(合算): 12,033,390円</title></circle><circle cx="744.0" cy="38.4" r="3.5" class="pt-value"><title>2026-08-10
+評価額(合算): 12,041,678円</title></circle><circle cx="64.0" cy="75.1" r="3.5" class="pt-sbi"><title>2026-08-08
+評価額(SBI証券): 10,114,747円</title></circle><circle cx="404.0" cy="75.1" r="3.5" class="pt-sbi"><title>2026-08-09
+評価額(SBI証券): 10,114,747円</title></circle><circle cx="744.0" cy="75.0" r="3.5" class="pt-sbi"><title>2026-08-10
+評価額(SBI証券): 10,122,898円</title></circle><circle cx="64.0" cy="231.4" r="3.5" class="pt-rakuten"><title>2026-08-08
+評価額(楽天証券): 1,918,644円</title></circle><circle cx="404.0" cy="231.4" r="3.5" class="pt-rakuten"><title>2026-08-09
+評価額(楽天証券): 1,918,644円</title></circle><circle cx="744.0" cy="231.4" r="3.5" class="pt-rakuten"><title>2026-08-10
+評価額(楽天証券): 1,918,780円</title></circle>
+      <text x="64.0" y="294" class="axis-label" text-anchor="start">2026-08-08</text><text x="404.0" y="294" class="axis-label" text-anchor="middle">2026-08-09</text><text x="744.0" y="294" class="axis-label" text-anchor="end">2026-08-10</text>
     </svg>
     
 
@@ -530,88 +572,88 @@
         </thead>
         <tbody>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/04314243" target="_blank" rel="noopener">一歩テック</a><span class="sub-name">一歩先いく US テック・トップ20インデックス</span></td>
-          <td class="num">19,820</td>
-          <td class="num change up">▲ +110</td>
-          <td class="num change up">+0.56%</td>
-          <td class="num sub">2026-08-07</td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/04314243" target="_blank" rel="noopener">一歩テック</a><span class="sub-name">一歩先いく US テック・トップ20インデックス</span></td>
+          <td class="num" data-label="基準価額/株価"><span class="cell-val">19,820</span></td>
+          <td class="num" data-label="前日比"><span class="cell-val"><span class="change-badge up">▲ +110</span></span></td>
+          <td class="num" data-label="前日比(%)"><span class="cell-val"><span class="change-badge up">+0.56%</span></span></td>
+          <td class="num sub" data-label="基準日"><span class="cell-val">2026-08-07</span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/04311181" target="_blank" rel="noopener">Fang</a><span class="sub-name">iFreeNEXT FANG+インデックス</span></td>
-          <td class="num">98,332</td>
-          <td class="num change up">▲ +455</td>
-          <td class="num change up">+0.46%</td>
-          <td class="num sub">2026-08-07</td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/04311181" target="_blank" rel="noopener">Fang</a><span class="sub-name">iFreeNEXT FANG+インデックス</span></td>
+          <td class="num" data-label="基準価額/株価"><span class="cell-val">98,332</span></td>
+          <td class="num" data-label="前日比"><span class="cell-val"><span class="change-badge up">▲ +455</span></span></td>
+          <td class="num" data-label="前日比(%)"><span class="cell-val"><span class="change-badge up">+0.46%</span></span></td>
+          <td class="num sub" data-label="基準日"><span class="cell-val">2026-08-07</span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/03311187" target="_blank" rel="noopener">SP500</a><span class="sub-name">eMAXIS Slim米国株式(S&P500)</span></td>
-          <td class="num">44,975</td>
-          <td class="num change up">▲ +162</td>
-          <td class="num change up">+0.36%</td>
-          <td class="num sub">2026-08-07</td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/03311187" target="_blank" rel="noopener">SP500</a><span class="sub-name">eMAXIS Slim米国株式(S&P500)</span></td>
+          <td class="num" data-label="基準価額/株価"><span class="cell-val">44,975</span></td>
+          <td class="num" data-label="前日比"><span class="cell-val"><span class="change-badge up">▲ +162</span></span></td>
+          <td class="num" data-label="前日比(%)"><span class="cell-val"><span class="change-badge up">+0.36%</span></span></td>
+          <td class="num sub" data-label="基準日"><span class="cell-val">2026-08-07</span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/03311182" target="_blank" rel="noopener">日経225</a><span class="sub-name">eMAXIS Slim国内株式(日経平均)</span></td>
-          <td class="num">32,473</td>
-          <td class="num change down">▼ -38</td>
-          <td class="num change down">-0.12%</td>
-          <td class="num sub">2026-08-07</td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/03311182" target="_blank" rel="noopener">日経225</a><span class="sub-name">eMAXIS Slim国内株式(日経平均)</span></td>
+          <td class="num" data-label="基準価額/株価"><span class="cell-val">32,473</span></td>
+          <td class="num" data-label="前日比"><span class="cell-val"><span class="change-badge down">▼ -38</span></span></td>
+          <td class="num" data-label="前日比(%)"><span class="cell-val"><span class="change-badge down">-0.12%</span></span></td>
+          <td class="num sub" data-label="基準日"><span class="cell-val">2026-08-07</span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/29313233" target="_blank" rel="noopener">NAS100</a><span class="sub-name">ニッセイ NASDAQ100インデックスファンド＜購･換無＞</span></td>
-          <td class="num">27,787</td>
-          <td class="num change up">▲ +41</td>
-          <td class="num change up">+0.15%</td>
-          <td class="num sub">2026-08-07</td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/29313233" target="_blank" rel="noopener">NAS100</a><span class="sub-name">ニッセイ NASDAQ100インデックスファンド＜購･換無＞</span></td>
+          <td class="num" data-label="基準価額/株価"><span class="cell-val">27,787</span></td>
+          <td class="num" data-label="前日比"><span class="cell-val"><span class="change-badge up">▲ +41</span></span></td>
+          <td class="num" data-label="前日比(%)"><span class="cell-val"><span class="change-badge up">+0.15%</span></span></td>
+          <td class="num sub" data-label="基準日"><span class="cell-val">2026-08-07</span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/29314233" target="_blank" rel="noopener">SOX</a><span class="sub-name">ニッセイ SOXインデックス(米国半導体株)＜購･換無＞</span></td>
-          <td class="num">45,844</td>
-          <td class="num change up">▲ +395</td>
-          <td class="num change up">+0.87%</td>
-          <td class="num sub">2026-08-07</td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/29314233" target="_blank" rel="noopener">SOX</a><span class="sub-name">ニッセイ SOXインデックス(米国半導体株)＜購･換無＞</span></td>
+          <td class="num" data-label="基準価額/株価"><span class="cell-val">45,844</span></td>
+          <td class="num" data-label="前日比"><span class="cell-val"><span class="change-badge up">▲ +395</span></span></td>
+          <td class="num" data-label="前日比(%)"><span class="cell-val"><span class="change-badge up">+0.87%</span></span></td>
+          <td class="num sub" data-label="基準日"><span class="cell-val">2026-08-07</span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/02311251" target="_blank" rel="noopener">ゴルNAS(特)</a><span class="sub-name">Tracers NASDAQ100ゴールドプラス</span></td>
-          <td class="num">18,717</td>
-          <td class="num change down">▼ -2</td>
-          <td class="num change down">-0.01%</td>
-          <td class="num sub">2026-08-07</td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/02311251" target="_blank" rel="noopener">ゴルNAS(特)</a><span class="sub-name">Tracers NASDAQ100ゴールドプラス</span></td>
+          <td class="num" data-label="基準価額/株価"><span class="cell-val">18,717</span></td>
+          <td class="num" data-label="前日比"><span class="cell-val"><span class="change-badge down">▼ -2</span></span></td>
+          <td class="num" data-label="前日比(%)"><span class="cell-val"><span class="change-badge down">-0.01%</span></span></td>
+          <td class="num sub" data-label="基準日"><span class="cell-val">2026-08-07</span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/8931A236" target="_blank" rel="noopener">iシェアーズゴールド(成)</a><span class="sub-name">SBI・iシェアーズ・ゴールド(H無)</span></td>
-          <td class="num">24,163</td>
-          <td class="num change up">▲ +101</td>
-          <td class="num change up">+0.42%</td>
-          <td class="num sub">2026-08-07</td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/8931A236" target="_blank" rel="noopener">iシェアーズゴールド(成)</a><span class="sub-name">SBI・iシェアーズ・ゴールド(H無)</span></td>
+          <td class="num" data-label="基準価額/株価"><span class="cell-val">24,163</span></td>
+          <td class="num" data-label="前日比"><span class="cell-val"><span class="change-badge up">▲ +101</span></span></td>
+          <td class="num" data-label="前日比(%)"><span class="cell-val"><span class="change-badge up">+0.42%</span></span></td>
+          <td class="num sub" data-label="基準日"><span class="cell-val">2026-08-07</span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/2244.T" target="_blank" rel="noopener">2244(成、ETF)</a><span class="sub-name">GX US テック・トップ20</span></td>
-          <td class="num">3,644</td>
-          <td class="num change up">▲ +57</td>
-          <td class="num change up">+1.59%</td>
-          <td class="num sub">—</td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/2244.T" target="_blank" rel="noopener">2244(成、ETF)</a><span class="sub-name">GX US テック・トップ20</span></td>
+          <td class="num" data-label="基準価額/株価"><span class="cell-val">3,644</span></td>
+          <td class="num" data-label="前日比"><span class="cell-val"><span class="change-badge up">▲ +57</span></span></td>
+          <td class="num" data-label="前日比(%)"><span class="cell-val"><span class="change-badge up">+1.59%</span></span></td>
+          <td class="num sub" data-label="基準日"><span class="cell-val">—</span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/9I312179" target="_blank" rel="noopener">楽天VTI</a><span class="sub-name">楽天・全米株式インデックス･ファンド</span></td>
-          <td class="num">45,423</td>
-          <td class="num change up">▲ +174</td>
-          <td class="num change up">+0.38%</td>
-          <td class="num sub">2026-08-07</td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/9I312179" target="_blank" rel="noopener">楽天VTI</a><span class="sub-name">楽天・全米株式インデックス･ファンド</span></td>
+          <td class="num" data-label="基準価額/株価"><span class="cell-val">45,423</span></td>
+          <td class="num" data-label="前日比"><span class="cell-val"><span class="change-badge up">▲ +174</span></span></td>
+          <td class="num" data-label="前日比(%)"><span class="cell-val"><span class="change-badge up">+0.38%</span></span></td>
+          <td class="num sub" data-label="基準日"><span class="cell-val">2026-08-07</span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/0331418A" target="_blank" rel="noopener">オルカン</a><span class="sub-name">eMAXIS Slim全世界株式(オール･カントリー)</span></td>
-          <td class="num">38,302</td>
-          <td class="num change up">▲ +75</td>
-          <td class="num change up">+0.20%</td>
-          <td class="num sub">2026-08-07</td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/0331418A" target="_blank" rel="noopener">オルカン</a><span class="sub-name">eMAXIS Slim全世界株式(オール･カントリー)</span></td>
+          <td class="num" data-label="基準価額/株価"><span class="cell-val">38,302</span></td>
+          <td class="num" data-label="前日比"><span class="cell-val"><span class="change-badge up">▲ +75</span></span></td>
+          <td class="num" data-label="前日比(%)"><span class="cell-val"><span class="change-badge up">+0.20%</span></span></td>
+          <td class="num sub" data-label="基準日"><span class="cell-val">2026-08-07</span></td>
         </tr>
         <tr>
-          <td class="label"><a href="https://finance.yahoo.co.jp/quote/SPCX" target="_blank" rel="noopener">SPCX</a><span class="sub-name">スペース・エクスプロレーション・テクノロジーズ</span></td>
-          <td class="num">$133.11<span class="sub">(≈21,074円)</span></td>
-          <td class="num change up">▲ $+18.19</td>
-          <td class="num change up">+15.83%</td>
-          <td class="num sub">2026-08-08</td>
+          <td class="label" data-label="銘柄"><a href="https://finance.yahoo.co.jp/quote/SPCX" target="_blank" rel="noopener">SPCX</a><span class="sub-name">スペース・エクスプロレーション・テクノロジーズ</span></td>
+          <td class="num" data-label="基準価額/株価"><span class="cell-val">$133.11<span class="sub">(≈21,079円)</span></span></td>
+          <td class="num" data-label="前日比"><span class="cell-val"><span class="change-badge up">▲ $+18.19</span></span></td>
+          <td class="num" data-label="前日比(%)"><span class="cell-val"><span class="change-badge up">+15.83%</span></span></td>
+          <td class="num sub" data-label="基準日"><span class="cell-val">2026-08-08</span></td>
         </tr>
         </tbody>
       </table>
