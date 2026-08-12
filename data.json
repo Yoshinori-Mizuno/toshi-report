@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-11 12:48:49",
+  "generated_at": "2026-08-12 13:33:09",
   "records": [
     {
       "label": "一歩テック",
@@ -135,14 +135,14 @@
       "url": "https://finance.yahoo.co.jp/quote/2244.T",
       "error": null,
       "name": "GX US テック・トップ20",
-      "date": "2026-08-10",
-      "date_raw": "8/10",
-      "price": "3,649",
-      "price_value": 3649.0,
-      "change": "+62",
-      "change_value": 62.0,
-      "change_rate": "+1.73",
-      "change_rate_value": 1.73,
+      "date": null,
+      "date_raw": "15:30",
+      "price": "3,650",
+      "price_value": 3650.0,
+      "change": "+1",
+      "change_value": 1.0,
+      "change_rate": "+0.03",
+      "change_rate_value": 0.03,
       "currency": "JPY"
     },
     {
@@ -167,14 +167,14 @@
       "url": "https://finance.yahoo.co.jp/quote/0331418A",
       "error": null,
       "name": "eMAXIS Slim全世界株式(オール･カントリー)",
-      "date": "2026-08-10",
-      "date_raw": "08/10",
-      "price": "38,395",
-      "price_value": 38395.0,
-      "change": "93",
-      "change_value": 93.0,
-      "change_rate": "0.24",
-      "change_rate_value": 0.24,
+      "date": "2026-08-12",
+      "date_raw": "08/12",
+      "price": "38,676",
+      "price_value": 38676.0,
+      "change": "281",
+      "change_value": 281.0,
+      "change_rate": "0.73",
+      "change_rate_value": 0.73,
       "currency": "JPY"
     },
     {
@@ -192,11 +192,11 @@
       "change_rate": "-1.14",
       "change_rate_value": -1.14,
       "currency": "USD",
-      "fx_rate": 159.27100000000002,
+      "fx_rate": 158.882,
       "stale": true,
       "stale_reason": "価格が数値ではありません(表示値: ---)",
       "stale_date": "2026-08-11",
-      "price_value_jpy": 20958.470890000004
+      "price_value_jpy": 20907.28238
     }
   ]
 }
