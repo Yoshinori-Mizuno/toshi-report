@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-11 12:48:49",
+  "generated_at": "2026-08-12 12:49:43",
   "records": [
     {
       "label": "一歩テック",
@@ -86,7 +86,6 @@
       "code": "29314233",
       "url": "https://finance.yahoo.co.jp/quote/29314233",
       "error": null,
-      "name": "ニッセイ SOXインデックス(米国半導体株)＜購･換無＞",
       "date": "2026-08-10",
       "date_raw": "08/10",
       "price": "46,820",
@@ -95,14 +94,17 @@
       "change_value": 976.0,
       "change_rate": "2.13",
       "change_rate_value": 2.13,
-      "currency": "JPY"
+      "currency": "JPY",
+      "name": "ニッセイ SOXインデックス(米国半導体株)＜購･換無＞",
+      "stale": true,
+      "stale_reason": "取得失敗: 500 Internal Server Error (一時的なエラー。3回試行)",
+      "stale_date": "2026-08-10"
     },
     {
       "label": "ゴルNAS(特)",
       "code": "02311251",
       "url": "https://finance.yahoo.co.jp/quote/02311251",
       "error": null,
-      "name": "Tracers NASDAQ100ゴールドプラス",
       "date": "2026-08-10",
       "date_raw": "08/10",
       "price": "19,302",
@@ -111,14 +113,17 @@
       "change_value": 585.0,
       "change_rate": "3.13",
       "change_rate_value": 3.13,
-      "currency": "JPY"
+      "currency": "JPY",
+      "name": "Tracers NASDAQ100ゴールドプラス",
+      "stale": true,
+      "stale_reason": "取得失敗: 500 Internal Server Error (一時的なエラー。3回試行)",
+      "stale_date": "2026-08-10"
     },
     {
       "label": "iシェアーズゴールド(成)",
       "code": "8931A236",
       "url": "https://finance.yahoo.co.jp/quote/8931A236",
       "error": null,
-      "name": "SBI・iシェアーズ・ゴールド(H無)",
       "date": "2026-08-10",
       "date_raw": "08/10",
       "price": "24,627",
@@ -127,14 +132,17 @@
       "change_value": 464.0,
       "change_rate": "1.92",
       "change_rate_value": 1.92,
-      "currency": "JPY"
+      "currency": "JPY",
+      "name": "SBI・iシェアーズ・ゴールド(H無)",
+      "stale": true,
+      "stale_reason": "取得失敗: 500 Internal Server Error (一時的なエラー。3回試行)",
+      "stale_date": "2026-08-10"
     },
     {
       "label": "2244(成、ETF)",
       "code": "2244.T",
       "url": "https://finance.yahoo.co.jp/quote/2244.T",
       "error": null,
-      "name": "GX US テック・トップ20",
       "date": "2026-08-10",
       "date_raw": "8/10",
       "price": "3,649",
@@ -143,14 +151,17 @@
       "change_value": 62.0,
       "change_rate": "+1.73",
       "change_rate_value": 1.73,
-      "currency": "JPY"
+      "currency": "JPY",
+      "name": "GX US テック・トップ20",
+      "stale": true,
+      "stale_reason": "取得失敗: 500 Internal Server Error (一時的なエラー。3回試行)",
+      "stale_date": "2026-08-10"
     },
     {
       "label": "楽天VTI",
       "code": "9I312179",
       "url": "https://finance.yahoo.co.jp/quote/9I312179",
       "error": null,
-      "name": "楽天・全米株式インデックス･ファンド",
       "date": "2026-08-10",
       "date_raw": "08/10",
       "price": "45,557",
@@ -159,14 +170,17 @@
       "change_value": 134.0,
       "change_rate": "0.30",
       "change_rate_value": 0.3,
-      "currency": "JPY"
+      "currency": "JPY",
+      "name": "楽天・全米株式インデックス･ファンド",
+      "stale": true,
+      "stale_reason": "取得失敗: 500 Internal Server Error (一時的なエラー。3回試行)",
+      "stale_date": "2026-08-10"
     },
     {
       "label": "オルカン",
       "code": "0331418A",
       "url": "https://finance.yahoo.co.jp/quote/0331418A",
       "error": null,
-      "name": "eMAXIS Slim全世界株式(オール･カントリー)",
       "date": "2026-08-10",
       "date_raw": "08/10",
       "price": "38,395",
@@ -175,14 +189,17 @@
       "change_value": 93.0,
       "change_rate": "0.24",
       "change_rate_value": 0.24,
-      "currency": "JPY"
+      "currency": "JPY",
+      "name": "eMAXIS Slim全世界株式(オール･カントリー)",
+      "stale": true,
+      "stale_reason": "取得失敗: 500 Internal Server Error (一時的なエラー。3回試行)",
+      "stale_date": "2026-08-10"
     },
     {
       "label": "SPCX",
       "code": "SPCX",
       "url": "https://finance.yahoo.co.jp/quote/SPCX",
       "error": null,
-      "name": "スペース・エクスプロレーション・テクノロジーズ",
       "date": "2026-08-11",
       "date_raw": "8/11 0:23",
       "price": "131.59",
@@ -193,8 +210,9 @@
       "change_rate_value": -1.14,
       "currency": "USD",
       "fx_rate": 159.27100000000002,
+      "name": "スペース・エクスプロレーション・テクノロジーズ",
       "stale": true,
-      "stale_reason": "価格が数値ではありません(表示値: ---)",
+      "stale_reason": "取得失敗: 500 Internal Server Error (一時的なエラー。3回試行)",
       "stale_date": "2026-08-11",
       "price_value_jpy": 20958.470890000004
     }
