@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-20 14:20:05",
+  "generated_at": "2026-09-21 14:21:18",
   "records": [
     {
       "label": "一歩テック",
@@ -70,7 +70,6 @@
       "code": "29313233",
       "url": "https://finance.yahoo.co.jp/quote/29313233",
       "error": null,
-      "name": "ニッセイ NASDAQ100インデックスファンド＜購入・換金手数料なし＞",
       "date": "2026-09-18",
       "date_raw": "9/18",
       "price": "27,467",
@@ -79,7 +78,11 @@
       "change_value": 478.0,
       "change_rate": "+1.77",
       "change_rate_value": 1.77,
-      "currency": "JPY"
+      "currency": "JPY",
+      "name": "ニッセイ NASDAQ100インデックスファンド＜購入・換金手数料なし＞",
+      "stale": true,
+      "stale_reason": "取得失敗: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))",
+      "stale_date": "2026-09-18"
     },
     {
       "label": "SOX",
@@ -183,17 +186,17 @@
       "url": "https://finance.yahoo.co.jp/quote/SPCX",
       "error": null,
       "name": "スペース・エクスプロレーション・テクノロジーズ",
-      "date": "2026-09-19",
-      "date_raw": "9/19 9:00",
-      "price": "152.71",
-      "price_value": 152.71,
-      "change": "-2.10",
-      "change_value": -2.1,
-      "change_rate": "-1.36",
-      "change_rate_value": -1.36,
+      "date": "2026-09-21",
+      "date_raw": "9/21 23:06",
+      "price": "155.61",
+      "price_value": 155.61,
+      "change": "2.90",
+      "change_value": 2.9,
+      "change_rate": "1.90",
+      "change_rate_value": 1.9,
       "currency": "USD",
-      "fx_rate": 156.873,
-      "price_value_jpy": 23956.07583
+      "fx_rate": 157.425,
+      "price_value_jpy": 24496.904250000003
     }
   ]
 }
