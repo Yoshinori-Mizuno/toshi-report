@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-17 14:19:44",
+  "generated_at": "2026-10-18 14:07:54",
   "records": [
     {
       "label": "一歩テック",
@@ -181,7 +181,7 @@
       "label": "SPCX",
       "code": "SPCX",
       "url": "https://finance.yahoo.co.jp/quote/SPCX",
-      "error": null,
+      "error": "為替レート(USD/JPY)を取得できませんでした",
       "name": "スペース・エクスプロレーション・テクノロジーズ",
       "date": "2026-10-17",
       "date_raw": "10/17 9:00",
@@ -191,9 +191,7 @@
       "change_value": -2.59,
       "change_rate": "-1.74",
       "change_rate_value": -1.74,
-      "currency": "USD",
-      "fx_rate": 157.997,
-      "price_value_jpy": 23072.301910000002
+      "currency": "USD"
     }
   ]
 }
