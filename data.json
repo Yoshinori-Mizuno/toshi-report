@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-02 14:20:57",
+  "generated_at": "2026-11-03 14:08:54",
   "records": [
     {
       "label": "一歩テック",
@@ -135,8 +135,8 @@
       "url": "https://finance.yahoo.co.jp/quote/2244.T",
       "error": null,
       "name": "GX US テック・トップ20",
-      "date": null,
-      "date_raw": "15:30",
+      "date": "2026-11-02",
+      "date_raw": "11/2",
       "price": "3,498",
       "price_value": 3498.0,
       "change": "-7",
