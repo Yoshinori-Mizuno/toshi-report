@@ -1,12 +1,11 @@
 {
-  "generated_at": "2026-11-07 14:08:13",
+  "generated_at": "2026-11-08 14:08:22",
   "records": [
     {
       "label": "一歩テック",
       "code": "04314243",
       "url": "https://finance.yahoo.co.jp/quote/04314243",
       "error": null,
-      "name": "一歩先いく US テック・トップ20インデックス",
       "date": "2026-11-06",
       "date_raw": "11/6",
       "price": "18,022",
@@ -15,14 +14,17 @@
       "change_value": -994.0,
       "change_rate": "-5.23",
       "change_rate_value": -5.23,
-      "currency": "JPY"
+      "currency": "JPY",
+      "name": "一歩先いく US テック・トップ20インデックス",
+      "stale": true,
+      "stale_reason": "取得失敗: 500 Internal Server Error (一時的なエラー。3回試行)",
+      "stale_date": "2026-11-06"
     },
     {
       "label": "Fang",
       "code": "04311181",
       "url": "https://finance.yahoo.co.jp/quote/04311181",
       "error": null,
-      "name": "iFreeNEXT FANG+インデックス",
       "date": "2026-11-06",
       "date_raw": "11/6",
       "price": "88,625",
@@ -31,14 +33,17 @@
       "change_value": -5921.0,
       "change_rate": "-6.26",
       "change_rate_value": -6.26,
-      "currency": "JPY"
+      "currency": "JPY",
+      "name": "iFreeNEXT FANG+インデックス",
+      "stale": true,
+      "stale_reason": "取得失敗: 500 Internal Server Error (一時的なエラー。3回試行)",
+      "stale_date": "2026-11-06"
     },
     {
       "label": "SP500",
       "code": "03311187",
       "url": "https://finance.yahoo.co.jp/quote/03311187",
       "error": null,
-      "name": "eMAXIS Slim米国株式(S&amp;P500)",
       "date": "2026-11-06",
       "date_raw": "11/6",
       "price": "42,755",
@@ -47,14 +52,17 @@
       "change_value": -2072.0,
       "change_rate": "-4.62",
       "change_rate_value": -4.62,
-      "currency": "JPY"
+      "currency": "JPY",
+      "name": "eMAXIS Slim米国株式(S&amp;P500)",
+      "stale": true,
+      "stale_reason": "取得失敗: 500 Internal Server Error (一時的なエラー。3回試行)",
+      "stale_date": "2026-11-06"
     },
     {
       "label": "日経225",
       "code": "03311182",
       "url": "https://finance.yahoo.co.jp/quote/03311182",
       "error": null,
-      "name": "eMAXIS Slim国内株式(日経平均)",
       "date": "2026-11-06",
       "date_raw": "11/6",
       "price": "28,615",
@@ -63,14 +71,17 @@
       "change_value": -1813.0,
       "change_rate": "-5.96",
       "change_rate_value": -5.96,
-      "currency": "JPY"
+      "currency": "JPY",
+      "name": "eMAXIS Slim国内株式(日経平均)",
+      "stale": true,
+      "stale_reason": "取得失敗: 500 Internal Server Error (一時的なエラー。3回試行)",
+      "stale_date": "2026-11-06"
     },
     {
       "label": "NAS100",
       "code": "29313233",
       "url": "https://finance.yahoo.co.jp/quote/29313233",
       "error": null,
-      "name": "ニッセイ NASDAQ100インデックスファンド＜購入・換金手数料なし＞",
       "date": "2026-11-06",
       "date_raw": "11/6",
       "price": "25,065",
@@ -79,14 +90,17 @@
       "change_value": -1776.0,
       "change_rate": "-6.62",
       "change_rate_value": -6.62,
-      "currency": "JPY"
+      "currency": "JPY",
+      "name": "ニッセイ NASDAQ100インデックスファンド＜購入・換金手数料なし＞",
+      "stale": true,
+      "stale_reason": "取得失敗: 500 Internal Server Error (一時的なエラー。3回試行)",
+      "stale_date": "2026-11-06"
     },
     {
       "label": "SOX",
       "code": "29314233",
       "url": "https://finance.yahoo.co.jp/quote/29314233",
       "error": null,
-      "name": "ニッセイ SOX指数インデックスファンド(米国半導体株)＜購入・換金手数料なし＞",
       "date": "2026-11-06",
       "date_raw": "11/6",
       "price": "34,118",
@@ -95,7 +109,11 @@
       "change_value": -4862.0,
       "change_rate": "-12.47",
       "change_rate_value": -12.47,
-      "currency": "JPY"
+      "currency": "JPY",
+      "name": "ニッセイ SOX指数インデックスファンド(米国半導体株)＜購入・換金手数料なし＞",
+      "stale": true,
+      "stale_reason": "取得失敗: 500 Internal Server Error (一時的なエラー。3回試行)",
+      "stale_date": "2026-11-06"
     },
     {
       "label": "ゴルNAS(特)",
