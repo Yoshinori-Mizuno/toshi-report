@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-11 14:10:53",
+  "generated_at": "2026-11-11 15:33:00",
   "records": [
     {
       "label": "一歩テック",
@@ -135,8 +135,8 @@
       "url": "https://finance.yahoo.co.jp/quote/2244.T",
       "error": null,
       "name": "GX US テック・トップ20",
-      "date": null,
-      "date_raw": "15:30",
+      "date": "2026-11-11",
+      "date_raw": "11/11",
       "price": "3,460",
       "price_value": 3460.0,
       "change": "+40",
@@ -183,18 +183,15 @@
       "url": "https://finance.yahoo.co.jp/quote/SPCX",
       "error": null,
       "name": "スペース・エクスプロレーション・テクノロジーズ",
-      "date": "2026-11-07",
-      "date_raw": "11/7 10:00",
-      "price": "134.27",
-      "price_value": 134.27,
-      "change": "+10.65",
-      "change_value": 10.65,
-      "change_rate": "+8.62",
-      "change_rate_value": 8.62,
-      "currency": "JPY",
-      "stale": true,
-      "stale_reason": "価格が数値ではありません(表示値: ---)",
-      "stale_date": "2026-11-07"
+      "date": "2026-11-12",
+      "date_raw": "11/12 0:17",
+      "price": "140.38",
+      "price_value": 140.38,
+      "change": "-2.71",
+      "change_value": -2.71,
+      "change_rate": "-1.89",
+      "change_rate_value": -1.89,
+      "currency": "JPY"
     }
   ]
 }
