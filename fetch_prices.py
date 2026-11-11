@@ -38,6 +38,7 @@ CODES = [
     ("楽天VTI", "9I312179"),
     ("オルカン", "0331418A"),
     ("SPCX", "SPCX"),
+    ("2243(SOX ETF)", "2243.T"),
 ]
 
 BASE_URL = "https://finance.yahoo.co.jp/quote/{code}"
