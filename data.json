@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-13 15:45:55",
+  "generated_at": "2026-11-14 14:08:01",
   "records": [
     {
       "label": "一歩テック",
@@ -134,7 +134,7 @@
       "code": "2244.T",
       "url": "https://finance.yahoo.co.jp/quote/2244.T",
       "error": null,
-      "name": "GX US テック・トップ20",
+      "name": "2244.T",
       "date": "2026-11-13",
       "date_raw": "11/13",
       "price": "3,475",
@@ -184,13 +184,13 @@
       "error": null,
       "name": "スペース・エクスプロレーション・テクノロジーズ",
       "date": "2026-11-14",
-      "date_raw": "11/14 0:30",
-      "price": "137.98",
-      "price_value": 137.98,
-      "change": "-1.96",
-      "change_value": -1.96,
-      "change_rate": "-1.40",
-      "change_rate_value": -1.4,
+      "date_raw": "11/14 6:00",
+      "price": "139.11",
+      "price_value": 139.11,
+      "change": "-0.83",
+      "change_value": -0.83,
+      "change_rate": "-0.59",
+      "change_rate_value": -0.59,
       "currency": "JPY"
     },
     {
