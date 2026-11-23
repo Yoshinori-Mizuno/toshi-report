@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-22 14:07:52",
+  "generated_at": "2026-11-23 14:10:44",
   "records": [
     {
       "label": "一歩テック",
@@ -191,7 +191,10 @@
       "change_value": -10.64,
       "change_rate": "-7.69",
       "change_rate_value": -7.69,
-      "currency": "JPY"
+      "currency": "JPY",
+      "stale": true,
+      "stale_reason": "価格が数値ではありません(表示値: ---)",
+      "stale_date": "2026-11-21"
     },
     {
       "label": "2243(SOX ETF)",
